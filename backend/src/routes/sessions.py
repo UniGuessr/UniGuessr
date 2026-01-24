@@ -73,7 +73,6 @@ async def get_current_location(
         "location_id": location.id,
         "image_url": location.image_url,
         "name": location.name,
-        "description": location.description,
         "round": session.current_round + 1,
         "total_rounds": session.rounds
     }

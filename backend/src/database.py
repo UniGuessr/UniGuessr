@@ -15,10 +15,19 @@ class Database:
         # Use certifi for SSL certificates (fixes MongoDB Atlas SSL issues)
         cls.client = AsyncIOMotorClient(
             settings.mongodb_url,
-            tlsCAFile=certifi.where()
+            tlsCAFile=certifi.where(),
+            serverSelectionTimeoutMS=5000,
+            retryWrites=True,
+            w='majority'
         )
         cls.db = cls.client[settings.mongodb_db_name]
         print(f"Connected to MongoDB at {settings.mongodb_url}")
+        # Test the connection
+        try:
+            await cls.client.admin.command('ping')
+            print("✓ MongoDB connection successful")
+        except Exception as e:
+            print(f"❌ MongoDB connection failed: {e}")
     
     @classmethod
     async def disconnect(cls):
