@@ -1,3 +1,4 @@
+import certifi
 from motor.motor_asyncio import AsyncIOMotorClient, AsyncIOMotorDatabase
 from src.config import settings
 
@@ -11,7 +12,11 @@ class Database:
     @classmethod
     async def connect(cls):
         """Connect to MongoDB."""
-        cls.client = AsyncIOMotorClient(settings.mongodb_url)
+        # Use certifi for SSL certificates (fixes MongoDB Atlas SSL issues)
+        cls.client = AsyncIOMotorClient(
+            settings.mongodb_url,
+            tlsCAFile=certifi.where()
+        )
         cls.db = cls.client[settings.mongodb_db_name]
         print(f"Connected to MongoDB at {settings.mongodb_url}")
     
