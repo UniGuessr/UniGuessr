@@ -44,12 +44,6 @@ export default function RootLayout({
             <main className="mx-auto pt-6 px-6 flex-grow">
               {children}
             </main>
-            <footer className="w-full flex items-center justify-center py-3">
-             
-              <div className="flex items-center gap-4">
-                <p>Leaderboard</p> * <p>Submit a Location</p>
-              </div>
-            </footer>
           </div>
         </Providers>
       </body>

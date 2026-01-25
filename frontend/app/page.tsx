@@ -20,7 +20,7 @@ export default function Home() {
           {/* Title */}
           <div className="space-y-3">
             <h1 className="text-5xl font-semibold tracking-tight text-white sm:text-6xl md:text-7xl">
-              Conu<span className="text-emerald-400">Guessr</span>
+              ConU<span className="text-emerald-400">Guessr</span>
             </h1>
             <p className="text-base text-white/60 sm:text-lg">
               Guess locations across Concordia University
@@ -33,7 +33,6 @@ export default function Home() {
               as={Link}
               href="/single-player"
               size="lg"
-              className="min-w-[160px] bg-white/95 px-6 py-5 font-medium text-gray-900 backdrop-blur-sm transition-all hover:bg-white"
               radius="md"
               variant="bordered"
             >
@@ -44,38 +43,10 @@ export default function Home() {
               as={Link}
               href="/multi-player"
               size="lg"
-              className="min-w-[160px] border border-white/20 bg-white/10 px-6 py-5 font-medium text-white backdrop-blur-sm transition-all hover:bg-white/20"
               radius="md"
               variant="bordered"
             >
               Multiplayer
-            </Button>
-          </div>
-
-          {/* Secondary Actions */}
-          <div className="flex flex-col sm:flex-row gap-3">
-            <Button
-              as={Link}
-              href="/leaderboard"
-              size="lg"
-              className="min-w-[160px] border-2 border-emerald-400/50 bg-emerald-400/20 px-6 py-5 font-medium text-white backdrop-blur-sm transition-all hover:bg-emerald-400/30"
-              radius="md"
-              variant="bordered"
-              startContent={<span className="text-xl">🏆</span>}
-            >
-              Leaderboard
-            </Button>
-
-            <Button
-              as={Link}
-              href="/upload"
-              size="lg"
-              className="min-w-[160px] border-2 border-blue-400/50 bg-blue-400/20 px-6 py-5 font-medium text-white backdrop-blur-sm transition-all hover:bg-blue-400/30"
-              radius="md"
-              variant="bordered"
-              startContent={<span className="text-xl">📍</span>}
-            >
-              Upload Location
             </Button>
           </div>
 
@@ -85,6 +56,12 @@ export default function Home() {
             <span className="h-1 w-1 rounded-full bg-white/30" />
             <span>2 campuses</span>
           </div>
+
+          <div className="flex items-center gap-6 text-sm text-white/40">
+              <Link href="/leaderboard">Leaderboard</Link>
+              <span className="h-1 w-1 rounded-full bg-white/30" />
+              <Link href="/upload">Submit a Location</Link>
+            </div>
         </div>
       </div>
     </main>

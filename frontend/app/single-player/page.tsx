@@ -57,7 +57,7 @@ export default function SinglePlayerPage() {
   const [scoreSaved, setScoreSaved] = useState(false);
   
   // Map reveal timer
-  const [mapCountdown, setMapCountdown] = useState(5);
+  const [mapCountdown, setMapCountdown] = useState(3);
   const [showMap, setShowMap] = useState(false);
 
   // Countdown timer effect
@@ -75,7 +75,7 @@ export default function SinglePlayerPage() {
   const startGame = async () => {
     setLoading(true);
     setError(null);
-    setMapCountdown(5);
+    setMapCountdown(3);
     setShowMap(false);
 
     try {
@@ -125,7 +125,7 @@ export default function SinglePlayerPage() {
 
     setLoading(true);
     setError(null);
-    setMapCountdown(5);
+    setMapCountdown(3);
     setShowMap(false);
 
     try {
@@ -206,88 +206,109 @@ export default function SinglePlayerPage() {
         {gameState === "setup" && (
           <motion.div
             key="setup"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            transition={{ duration: 0.4, ease: "easeInOut" }}
-            className="max-w-lg mx-auto"
+            initial={{ opacity: 0, scale: 0.98 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.98 }}
+            className="max-w-md mx-auto h-full flex flex-col justify-center px-4"
           >
-            <Card className="shadow-xl">
-              <CardHeader className="flex flex-col gap-2 pb-0">
-                <h1 className="text-3xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
-                  Single Player
-                </h1>
-                <p className="text-slate-500">
-                  Test your knowledge of Concordia University campus!
-                </p>
-              </CardHeader>
+            <div className="text-center mb-8">
+              <h1 className="text-3xl font-black tracking-tight text-slate-900">
+                Ready to Play?
+              </h1>
+              <p className="text-slate-500 mt-2">Configure your Concordia expedition</p>
+            </div>
 
-              <CardBody className="gap-6">
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-2">
-                    Number of Rounds
-                  </label>
-                  <div className="flex gap-3">
+            <Card className="border-none shadow-2xl shadow-indigo-100/50 bg-white/80 backdrop-blur-xl">
+              <CardBody className="gap-8 p-8">
+                {/* Rounds Section */}
+                <div className="space-y-3">
+                  <div className="flex justify-between items-end">
+                    <span className="text-xs font-bold uppercase tracking-widest text-slate-400">Length</span>
+                    <span className="text-xs font-medium text-indigo-500">{rounds} Rounds</span>
+                  </div>
+                  <div className="flex p-1 bg-slate-100/50 rounded-xl gap-1">
                     {ROUND_OPTIONS.map((opt) => (
-                      <Button
+                      <button
                         key={opt}
-                        variant={rounds === opt ? "solid" : "bordered"}
-                        color={rounds === opt ? "primary" : "default"}
-                        onPress={() => setRounds(opt)}
-                        className="flex-1 font-semibold"
+                        onClick={() => setRounds(opt)}
+                        className={`flex-1 py-2.5 rounded-lg text-sm font-bold transition-all ${
+                          rounds === opt 
+                            ? "bg-white text-indigo-600 shadow-sm ring-1 ring-black/5" 
+                            : "text-slate-500 hover:text-slate-700"
+                        }`}
                       >
                         {opt}
-                      </Button>
+                      </button>
                     ))}
                   </div>
                 </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-2">
-                    Difficulty
-                  </label>
-                  <Select
-                    selectedKeys={[difficulty]}
-                    onSelectionChange={(keys) => {
-                      const selected = Array.from(keys)[0] as Difficulty;
-                      if (selected) setDifficulty(selected);
-                    }}
-                    classNames={{
-                      trigger: "h-14",
-                    }}
-                  >
+                {/* Difficulty Section */}
+                <div className="space-y-3">
+                  <span className="text-xs font-bold uppercase tracking-widest text-slate-400">Challenge</span>
+                  <div className="grid grid-cols-1 gap-2">
                     {DIFFICULTY_OPTIONS.map((opt) => (
-                      <SelectItem key={opt.key} textValue={opt.label}>
-                        <div className="flex flex-col">
-                          <span className="font-medium">{opt.label}</span>
-                          <span className="text-xs text-slate-500">{opt.description}</span>
+                      <button
+                        key={opt.key}
+                        onClick={() => setDifficulty(opt.key as Difficulty)}
+                        className={`flex items-center p-4 rounded-xl border-2 transition-all text-left ${
+                          difficulty === opt.key 
+                            ? "border-indigo-500 bg-indigo-50/50" 
+                            : "border-slate-100 hover:border-slate-200 bg-transparent"
+                        }`}
+                      >
+                        <div className="flex-1">
+                          <p className={`font-bold text-sm ${difficulty === opt.key ? "text-indigo-700" : "text-slate-700"}`}>
+                            {opt.label}
+                          </p>
+                          <p className="text-[11px] text-slate-500 leading-tight mt-0.5">
+                            {opt.description}
+                          </p>
                         </div>
-                      </SelectItem>
+                        {difficulty === opt.key && (
+                          <div className="w-5 h-5 rounded-full bg-indigo-500 flex items-center justify-center">
+                            <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                            </svg>
+                          </div>
+                        )}
+                      </button>
                     ))}
-                  </Select>
+                  </div>
                 </div>
 
                 {error && (
-                  <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-red-600 text-sm">
+                  <motion.div 
+                    initial={{ opacity: 0, height: 0 }} 
+                    animate={{ opacity: 1, height: 'auto' }}
+                    className="text-center text-xs font-semibold text-red-500 bg-red-50 py-2 rounded-lg"
+                  >
                     {error}
-                  </div>
+                  </motion.div>
                 )}
-              </CardBody>
 
-              <CardFooter className="flex flex-col gap-3">
-                <Button
-                  color="primary"
-                  size="lg"
-                  className="w-full font-semibold text-lg"
-                  onPress={startGame}
-                  isLoading={loading}
-                >
-                  Start Game
-                </Button>
-                <Link href="/" className="text-slate-500 text-sm">
-                  ← Back to Home
-                </Link>
-              </CardFooter>
+                <div className="space-y-4">
+                  <Button
+                    color="primary"
+                    size="lg"
+                    className="w-full font-bold h-14 text-md shadow-lg shadow-indigo-200 bg-indigo-600"
+                    onPress={startGame}
+                    isLoading={loading}
+                  >
+                    Launch Expedition
+                  </Button>
+                  
+                  <Link 
+                    href="/" 
+                    className="flex items-center justify-center gap-2 text-slate-400 text-xs font-medium hover:text-slate-600 transition-colors uppercase tracking-widest"
+                  >
+                    <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                    </svg>
+                    Cancel
+                  </Link>
+                </div>
+              </CardBody>
             </Card>
           </motion.div>
         )}

@@ -10,6 +10,19 @@ type LocationPickerMapProps = {
   initialLng?: number;
 };
 
+// Helper to create the red guess pin marker element
+function createGuessPinElement(): HTMLDivElement {
+  const el = document.createElement("div");
+  el.style.cssText = "width: 30px; height: 40px; cursor: pointer; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));";
+  el.innerHTML = `
+    <svg width="30" height="40" viewBox="0 0 30 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M15 0C6.716 0 0 6.716 0 15c0 10.969 13.5 24.062 14.063 24.625a1.406 1.406 0 0 0 1.874 0C16.5 39.062 30 25.969 30 15 30 6.716 23.284 0 15 0z" fill="#ef4444"/>
+      <circle cx="15" cy="14" r="6" fill="white"/>
+    </svg>
+  `;
+  return el;
+}
+
 export default function LocationPickerMap({
   onLocationSelect,
   initialLat,
@@ -64,22 +77,9 @@ export default function LocationPickerMap({
       if (markerRef.current) {
         markerRef.current.setLngLat([lng, lat]);
       } else if (mapRef.current) {
-        const el = document.createElement("div");
-        el.className = "location-picker-marker";
-        el.innerHTML = `
-          <div style="
-            width: 24px;
-            height: 24px;
-            background: #ef4444;
-            border: 3px solid white;
-            border-radius: 50%;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
-            cursor: grab;
-          "></div>
-        `;
-
         markerRef.current = new mapboxgl.Marker({ 
-          element: el,
+          element: createGuessPinElement(),
+          anchor: "bottom",
           draggable: true 
         })
           .setLngLat([lng, lat])
@@ -109,15 +109,15 @@ export default function LocationPickerMap({
 
   return (
     <div className="space-y-3">
-      <div className="relative w-full h-[400px] rounded-xl overflow-hidden shadow-lg border-2 border-slate-200">
+      <div className="relative w-full h-[800px] rounded-xl overflow-hidden shadow-lg border-2 border-slate-200">
         <div ref={containerRef} className="w-full h-full" />
         {!selectedPosition && (
-          <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-white/95 backdrop-blur px-4 py-2 rounded-full shadow-lg text-sm font-medium text-slate-700">
+          <div className="absolute bottom-27 left-1/2 -translate-x-1/2 bg-white/95 backdrop-blur px-4 py-2 rounded-full shadow-lg text-sm font-medium text-slate-700">
             📍 Click on the map to select location
           </div>
         )}
         {selectedPosition && (
-          <div className="absolute top-4 left-1/2 -translate-x-1/2 bg-blue-600/95 backdrop-blur px-4 py-2 rounded-full shadow-lg text-sm font-medium text-white">
+          <div className="absolute bottom-27 left-1/2 -translate-x-1/2 bg-blue-600/95 backdrop-blur px-4 py-2 rounded-full shadow-lg text-sm font-medium text-white">
             📍 Drag the marker to adjust position
           </div>
         )}

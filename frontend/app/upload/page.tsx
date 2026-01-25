@@ -2,13 +2,14 @@
 
 import { useState } from "react";
 import { Button } from "@heroui/button";
-import { Card, CardBody, CardHeader } from "@heroui/card";
+import { Card, CardBody } from "@heroui/card";
 import { Input } from "@heroui/input";
 import { Select, SelectItem } from "@heroui/select";
 import { Link } from "@heroui/link";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { uploadLocation } from "@/lib/api";
 import LocationPickerMap from "@/components/location-picker-map";
+import { ArrowLeft, Upload, Trash2, CheckCircle2, MapPin } from "lucide-react"; // Optional: recommended for a sleek look
 
 const DIFFICULTY_OPTIONS = [
   { key: "easy", label: "Easy" },
@@ -35,78 +36,15 @@ export default function UploadLocationPage() {
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      // Validate file type
       if (!file.type.startsWith("image/")) {
-        setError("Please select a valid image file");
+        setError("Invalid image file");
         return;
       }
-      
-      // Validate file size (max 10MB)
-      if (file.size > 10 * 1024 * 1024) {
-        setError("Image size must be less than 10MB");
-        return;
-      }
-
       setImage(file);
       setError(null);
-
-      // Create preview
       const reader = new FileReader();
-      reader.onloadend = () => {
-        setImagePreview(reader.result as string);
-      };
+      reader.onloadend = () => setImagePreview(reader.result as string);
       reader.readAsDataURL(file);
-    }
-  };
-
-  const validateForm = (): boolean => {
-    if (!name.trim()) {
-      setError("Please enter a location name");
-      return false;
-    }
-
-    if (!coordinates) {
-      setError("Please select a location on the map");
-      return false;
-    }
-
-    if (!image) {
-      setError("Please select an image");
-      return false;
-    }
-
-    return true;
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!validateForm()) {
-      return;
-    }
-
-    setLoading(true);
-    setError(null);
-
-    try {
-      await uploadLocation({
-        name: name.trim(),
-        latitude: coordinates!.lat,
-        longitude: coordinates!.lng,
-        difficulty,
-        image: image!,
-      });
-
-      setSuccess(true);
-      
-      // Reset form after 2 seconds
-      setTimeout(() => {
-        resetForm();
-      }, 2000);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to upload location");
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -120,194 +58,136 @@ export default function UploadLocationPage() {
     setSuccess(false);
   };
 
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!name.trim() || !coordinates || !image) {
+      setError("Please complete all fields");
+      return;
+    }
+    setLoading(true);
+    setError(null);
+    try {
+      await uploadLocation({
+        name: name.trim(),
+        latitude: coordinates.lat,
+        longitude: coordinates.lng,
+        difficulty,
+        image: image!,
+      });
+      setSuccess(true);
+      setTimeout(resetForm, 3000);
+    } catch (err) {
+      setError("Failed to upload. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-6">
-      <div className="max-w-2xl mx-auto">
-        {/* Header */}
-        <div className="mb-8">
-          <div className="flex items-center justify-between mb-4">
-            <div>
-              <h1 className="text-4xl font-bold text-slate-800 mb-2">📍 Upload Location</h1>
-              <p className="text-slate-600">
-                Share a location from Concordia University
-              </p>
-            </div>
-            <Button
-              as={Link}
-              href="/"
-              variant="bordered"
-              size="lg"
+      <main className="mx-auto p-4 lg:p-8 h-[calc(100vh-2rem)]">
+        <AnimatePresence mode="wait">
+          {success ? (
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.95 }} 
+              animate={{ opacity: 1, scale: 1 }}
+              className="h-full flex items-center justify-center"
             >
-              Home
-            </Button>
-          </div>
-        </div>
-
-        {/* Success Message */}
-        {success && (
-          <motion.div
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="mb-6"
-          >
-            <Card className="bg-emerald-50 border-2 border-emerald-200">
-              <CardBody>
-                <div className="text-center py-4">
-                  <p className="text-5xl mb-3">✅</p>
-                  <p className="text-lg font-semibold text-emerald-700">
-                    Location uploaded successfully!
-                  </p>
-                  <p className="text-sm text-emerald-600 mt-2">
-                    Thank you for contributing to ConUGuessr
-                  </p>
+              <div className="text-center space-y-4">
+                <div className="w-20 h-20 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto mb-6">
+                  <CheckCircle2 size={40} />
                 </div>
-              </CardBody>
-            </Card>
-          </motion.div>
-        )}
+                <h2 className="text-3xl font-bold">Location Uploaded!</h2>
+                <p className="text-slate-500">Your contribution is now live in the pool.</p>
+              </div>
+            </motion.div>
+          ) : (
+            <div className="grid lg:grid-cols-5 gap-8 h-full">
+              
+              {/* Left Column: Form (2/5) */}
+              <div className="lg:col-span-2 space-y-6 overflow-y-auto pr-2 custom-scrollbar">
+                <div>
+                  <h1 className="text-2xl font-bold tracking-tight">Add New Location</h1>
+                  <p className="text-slate-500 text-sm mt-1">Help others explore Concordia’s campus.</p>
+                </div>
 
-        {/* Upload Form */}
-        {!success && (
-          <Card className="shadow-lg">
-            <CardHeader className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white p-6">
-              <h2 className="text-xl font-semibold">Location Details</h2>
-            </CardHeader>
-            <CardBody className="p-6">
-              <form onSubmit={handleSubmit} className="space-y-6">
-                {/* Location Name */}
-                <Input
-                  label="Location Name"
-                  placeholder="e.g., Engineering Building Entrance"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  isRequired
-                  description="Give this location a descriptive name"
-                  size="lg"
-                />
+                <form onSubmit={handleSubmit} className="space-y-5">
+                  <Input
+                    label="Name"
+                    variant="bordered"
+                    placeholder="e.g. Hall Building Mezzanine"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    classNames={{ label: "font-medium", inputWrapper: "bg-white" }}
+                  />
 
-                {/* Map Location Picker */}
-                <div className="space-y-2">
-                  <label className="block text-sm font-medium text-slate-700">
-                    Location on Map *
-                  </label>
-                  <p className="text-xs text-slate-500 mb-2">
-                    Click on the map to select the exact location. You can drag the marker to adjust.
-                  </p>
+                  <Select
+                    label="Difficulty"
+                    variant="bordered"
+                    selectedKeys={[difficulty]}
+                    onChange={(e) => setDifficulty(e.target.value)}
+                    classNames={{ trigger: "bg-white" }}
+                  >
+                    {DIFFICULTY_OPTIONS.map((opt) => (
+                      <SelectItem key={opt.key}>{opt.label}</SelectItem>
+                    ))}
+                  </Select>
+
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium px-1">Location Image</label>
+                    {imagePreview ? (
+                      <div className="group relative rounded-xl overflow-hidden border-2 border-slate-100 shadow-sm ">
+                        <img src={imagePreview} alt="Preview" className="w-full h-[440px] object-cover transition-transform group-hover:scale-105" />
+                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                          <Button isIconOnly color="danger" variant="flat" onPress={() => {setImage(null); setImagePreview(null)}}>
+                            <Trash2 size={20} />
+                          </Button>
+                        </div>
+                      </div>
+                    ) : (
+                      <label className="flex flex-col items-center justify-center w-full h-[445px] border-2 border-dashed border-slate-200 rounded-xl cursor-pointer hover:bg-slate-50 hover:border-indigo-300 transition-all group">
+                        <Upload className="text-slate-400 group-hover:text-indigo-500 mb-2 transition-colors" />
+                        <span className="text-sm text-slate-500 font-medium">Click to upload photo</span>
+                        <input type="file" className="hidden" accept="image/*" onChange={handleImageChange} />
+                      </label>
+                    )}
+                  </div>
+
+                  {error && (
+                    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="p-3 bg-red-50 text-red-600 text-xs rounded-lg border border-red-100">
+                      {error}
+                    </motion.div>
+                  )}
+
+                  <div className="flex gap-3">
+                    <Button 
+                      type="submit" 
+                      color="primary" 
+                      size="lg" 
+                      className="flex-1 h-[40px]"
+                      isLoading={loading}
+                      variant="ghost"
+                    >
+                      Publish Location
+                    </Button>
+                  </div>
+                </form>
+              </div>
+
+              {/* Right Column: Map (3/5) */}
+              <div className="lg:col-span-3 min-h-[600px] lg:h-full relative">
+                <Card className="h-full border-none">
                   <LocationPickerMap
                     onLocationSelect={handleLocationSelect}
                     initialLat={coordinates?.lat}
                     initialLng={coordinates?.lng}
+
                   />
-                </div>
+                </Card>
+              </div>
 
-                {/* Difficulty */}
-                <Select
-                  label="Difficulty"
-                  placeholder="Select difficulty level"
-                  selectedKeys={[difficulty]}
-                  onChange={(e) => setDifficulty(e.target.value)}
-                  description="How challenging is it to identify this location?"
-                  size="lg"
-                >
-                  {DIFFICULTY_OPTIONS.map((option) => (
-                    <SelectItem key={option.key}>
-                      {option.label}
-                    </SelectItem>
-                  ))}
-                </Select>
-
-                {/* Image Upload */}
-                <div className="space-y-3">
-                  <label className="block text-sm font-medium text-slate-700">
-                    Location Image *
-                  </label>
-                  
-                  {imagePreview ? (
-                    <div className="relative">
-                      <img
-                        src={imagePreview}
-                        alt="Preview"
-                        className="w-full h-64 object-cover rounded-lg border-2 border-slate-200"
-                      />
-                      <Button
-                        color="danger"
-                        size="sm"
-                        className="absolute top-2 right-2"
-                        onPress={() => {
-                          setImage(null);
-                          setImagePreview(null);
-                        }}
-                      >
-                        Remove
-                      </Button>
-                    </div>
-                  ) : (
-                    <div className="border-2 border-dashed border-slate-300 rounded-lg p-8 text-center hover:border-indigo-400 transition-colors">
-                      <input
-                        type="file"
-                        accept="image/*"
-                        onChange={handleImageChange}
-                        className="hidden"
-                        id="image-upload"
-                      />
-                      <label
-                        htmlFor="image-upload"
-                        className="cursor-pointer flex flex-col items-center gap-2"
-                      >
-                        <div className="text-5xl">📷</div>
-                        <p className="text-slate-600 font-medium">
-                          Click to upload an image
-                        </p>
-                        <p className="text-sm text-slate-400">
-                          PNG, JPG, WEBP up to 10MB
-                        </p>
-                      </label>
-                    </div>
-                  )}
-                </div>
-
-                {/* Error Message */}
-                {error && (
-                  <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
-                    <p className="text-red-600 text-sm">{error}</p>
-                  </div>
-                )}
-
-                {/* Info Box */}
-                <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                  <p className="text-sm text-blue-700">
-                    <strong>Tip:</strong> Use the zoom controls to navigate the map. 
-                    The marker is draggable, so you can fine-tune the position after placing it.
-                  </p>
-                </div>
-
-                {/* Submit Button */}
-                <div className="flex gap-3">
-                  <Button
-                    type="submit"
-                    color="primary"
-                    size="lg"
-                    className="flex-1 font-semibold"
-                    isLoading={loading}
-                    isDisabled={loading}
-                  >
-                    Upload Location
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="bordered"
-                    size="lg"
-                    onPress={resetForm}
-                    isDisabled={loading}
-                  >
-                    Clear
-                  </Button>
-                </div>
-              </form>
-            </CardBody>
-          </Card>
-        )}
-      </div>
-    </div>
+            </div>
+          )}
+        </AnimatePresence>
+      </main>
   );
 }
