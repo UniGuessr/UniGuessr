@@ -23,7 +23,7 @@ function formatDistance(meters: number): string {
 }
 
 // Create a distance label element for the map with animated numbers
-function createDistanceLabelElement(distance: number, angleDeg: number): HTMLDivElement {
+function createDistanceLabelElement(distance: number): HTMLDivElement {
   const el = document.createElement("div");
   el.className = "distance-label";
   el.style.cssText = `
@@ -32,7 +32,6 @@ function createDistanceLabelElement(distance: number, angleDeg: number): HTMLDiv
     border-radius: 20px;
     font-weight: 600;
     font-size: 16px;
-    transform: rotate(${angleDeg}deg);
     background: white;
     box-shadow: 0 2px 8px rgba(0,0,0,0.15);
     white-space: nowrap;
@@ -266,14 +265,14 @@ export default function GuessMap({
   }, [showResult, guessedLocation, actualLocation]);
 
   /**
-   * Draw line + fit bounds when result is shown and both points exist
+   * Draw line + add distance label + fit bounds when result is shown and both points exist
    */
   useEffect(() => {
     if (!mapRef.current || !showResult || !guessedLocation || !actualLocation) return;
 
     const map = mapRef.current;
 
-    const addLine = () => {
+    const addLineAndLabel = () => {
       // Cleanup old line if any
       if (lineRef.current && map.getSource(lineRef.current)) {
         if (map.getLayer(lineRef.current)) map.removeLayer(lineRef.current);
@@ -313,7 +312,26 @@ export default function GuessMap({
         },
       });
 
-      // Fit bounds to show both markers
+      // Add distance label BEFORE fitBounds so it's in position during animation
+      if (distanceMeters !== null) {
+        const midLng = (guessedLocation.lng + actualLocation.lng) / 2;
+        const midLat = (guessedLocation.lat + actualLocation.lat) / 2;
+
+        // Remove old label if exists
+        if (distanceLabelRef.current) {
+          distanceLabelRef.current.remove();
+          distanceLabelRef.current = null;
+        }
+
+        distanceLabelRef.current = new mapboxgl.Marker({
+          element: createDistanceLabelElement(distanceMeters),
+          anchor: "center",
+        })
+          .setLngLat([midLng, midLat])
+          .addTo(map);
+      }
+
+      // Fit bounds to show both markers (happens after label is added)
       const bounds = new mapboxgl.LngLatBounds()
         .extend([guessedLocation.lng, guessedLocation.lat])
         .extend([actualLocation.lng, actualLocation.lat]);
@@ -321,78 +339,10 @@ export default function GuessMap({
       map.fitBounds(bounds, { padding: 80, maxZoom: 17 });
     };
 
-    if (map.isStyleLoaded()) addLine();
-    else map.once("load", addLine);
-  }, [showResult, guessedLocation, actualLocation]);
-
-  /**
-   * Show animated distance label at midpoint of line, rotated parallel to the line
-   */
-  useEffect(() => {
-    if (!mapRef.current || !showResult || !guessedLocation || !actualLocation || distanceMeters === null) {
-      return;
-    }
-
-    const map = mapRef.current;
-
-    // Calculate midpoint (distance / 2) - label always renders at the halfway point along the line
-    const midLng = (guessedLocation.lng + actualLocation.lng) / 2;
-    const midLat = (guessedLocation.lat + actualLocation.lat) / 2;
-
-    // Calculate angle using screen coordinates for accurate rotation
-    const guessPoint = map.project([guessedLocation.lng, guessedLocation.lat]);
-    const actualPoint = map.project([actualLocation.lng, actualLocation.lat]);
-    
-    const dx = actualPoint.x - guessPoint.x;
-    const dy = actualPoint.y - guessPoint.y;
-    // Note: atan2 takes (y, x) so dy comes first
-    let angleDeg = Math.atan2(dy, dx) * (180 / Math.PI);
-    
-    // Keep text readable (not upside down)
-    if (angleDeg > 90) angleDeg -= 180;
-    if (angleDeg < -90) angleDeg += 180;
-
-    // Remove old label if exists
-    if (distanceLabelRef.current) {
-      distanceLabelRef.current.remove();
-    }
-
-    // Create new distance label marker with rotation
-    distanceLabelRef.current = new mapboxgl.Marker({
-      element: createDistanceLabelElement(distanceMeters, angleDeg),
-      anchor: "center",
-      rotationAlignment: "map",
-      pitchAlignment: "map"
-    })
-      .setLngLat([midLng, midLat])
-      .addTo(map);
-      
-    // Update rotation when map rotates or moves
-    const updateRotation = () => {
-      if (!distanceLabelRef.current) return;
-      
-      const guessPoint = map.project([guessedLocation.lng, guessedLocation.lat]);
-      const actualPoint = map.project([actualLocation.lng, actualLocation.lat]);
-      
-      const dx = actualPoint.x - guessPoint.x;
-      const dy = actualPoint.y - guessPoint.y;
-      let angleDeg = Math.atan2(dy, dx) * (180 / Math.PI);
-      
-      if (angleDeg > 90) angleDeg -= 180;
-      if (angleDeg < -90) angleDeg += 180;
-      
-      const el = distanceLabelRef.current.getElement();
-      el.style.transform = `rotate(${angleDeg}deg)`;
-    };
-    
-    map.on('move', updateRotation);
-    map.on('zoom', updateRotation);
-    
-    return () => {
-      map.off('move', updateRotation);
-      map.off('zoom', updateRotation);
-    };
+    if (map.isStyleLoaded()) addLineAndLabel();
+    else map.once("load", addLineAndLabel);
   }, [showResult, guessedLocation, actualLocation, distanceMeters]);
+
 
   /**
    * Cleanup result markers + line when leaving result mode with smooth animation
