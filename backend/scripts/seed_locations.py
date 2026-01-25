@@ -24,70 +24,70 @@ SAMPLE_LOCATIONS = [
         "name": "Hall Building",
         "latitude": 45.497200,
         "longitude": -73.578900,
-        "image_url": "https://picsum.photos/seed/hall/800/600",
+        "image_url": "/Pics/1712176459788.jpg",
         "difficulty": "easy"
     },
     {
         "name": "Henry F. Hall Building Entrance",
         "latitude": 45.497100,
         "longitude": -73.579200,
-        "image_url": "https://picsum.photos/seed/hall2/800/600",
+        "image_url": "/Pics/1712176459788.jpg",
         "difficulty": "easy"
     },
     {
         "name": "EV Building",
         "latitude": 45.495400,
         "longitude": -73.578000,
-        "image_url": "https://picsum.photos/seed/ev/800/600",
+        "image_url": "/Pics/1712176459788.jpg",
         "difficulty": "medium"
     },
     {
         "name": "John Molson Building",
         "latitude": 45.495100,
         "longitude": -73.579200,
-        "image_url": "https://picsum.photos/seed/jmsb/800/600",
+        "image_url": "/Pics/1712176459788.jpg",
         "difficulty": "medium"
     },
     {
         "name": "Visual Arts Building (VA)",
         "latitude": 45.494800,
         "longitude": -73.578400,
-        "image_url": "https://picsum.photos/seed/va/800/600",
+        "image_url": "/Pics/1712176459788.jpg",
         "difficulty": "hard"
     },
     {
         "name": "Grey Nuns Building (GN)",
         "latitude": 45.491600,
         "longitude": -73.577900,
-        "image_url": "https://picsum.photos/seed/gn/800/600",
+        "image_url": "/Pics/1712176459788.jpg",
         "difficulty": "hard"
     },
     {
         "name": "Guy-De Maisonneuve Building (GM)",
         "latitude": 45.496900,
         "longitude": -73.578200,
-        "image_url": "https://picsum.photos/seed/gm/800/600",
+        "image_url": "/Pics/1712176459788.jpg",
         "difficulty": "medium"
     },
     {
         "name": "J.W. McConnell Building (LB)",
         "latitude": 45.497500,
         "longitude": -73.577800,
-        "image_url": "https://picsum.photos/seed/lb/800/600",
+        "image_url": "/Pics/1712176459788.jpg",
         "difficulty": "medium"
     },
     {
         "name": "Faubourg Building (FB)",
         "latitude": 45.495600,
         "longitude": -73.577300,
-        "image_url": "https://picsum.photos/seed/fb/800/600",
+        "image_url": "/Pics/1712176459788.jpg",
         "difficulty": "hard"
     },
     {
         "name": "Engineering Computer Science and Visual Arts (EV)",
         "latitude": 45.495500,
         "longitude": -73.577900,
-        "image_url": "https://picsum.photos/seed/ev2/800/600",
+        "image_url": "/Pics/1712176459788.jpg",
         "difficulty": "easy"
     },
     
@@ -96,56 +96,56 @@ SAMPLE_LOCATIONS = [
         "name": "Central Building (Loyola)",
         "latitude": 45.458400,
         "longitude": -73.640200,
-        "image_url": "https://picsum.photos/seed/central/800/600",
+        "image_url": "/Pics/1712176459788.jpg",
         "difficulty": "easy"
     },
     {
         "name": "Student Centre (Loyola)",
         "latitude": 45.458100,
         "longitude": -73.640600,
-        "image_url": "https://picsum.photos/seed/studentcentre/800/600",
+        "image_url": "/Pics/1712176459788.jpg",
         "difficulty": "medium"
     },
     {
         "name": "Richard J. Renaud Science Complex (Loyola)",
         "latitude": 45.457800,
         "longitude": -73.639800,
-        "image_url": "https://picsum.photos/seed/science/800/600",
+        "image_url": "/Pics/1712176459788.jpg",
         "difficulty": "medium"
     },
     {
         "name": "Vanier Library (Loyola)",
         "latitude": 45.458300,
         "longitude": -73.640100,
-        "image_url": "https://picsum.photos/seed/vanier/800/600",
+        "image_url": "/Pics/1712176459788.jpg",
         "difficulty": "easy"
     },
     {
         "name": "Stinger Dome (Loyola)",
         "latitude": 45.457200,
         "longitude": -73.641100,
-        "image_url": "https://picsum.photos/seed/dome/800/600",
+        "image_url": "/Pics/1712176459788.jpg",
         "difficulty": "hard"
     },
     {
         "name": "Psychology Building (Loyola)",
         "latitude": 45.458600,
         "longitude": -73.640400,
-        "image_url": "https://picsum.photos/seed/psych/800/600",
+        "image_url": "/Pics/1712176459788.jpg",
         "difficulty": "hard"
     },
     {
         "name": "Communication Studies Building (Loyola)",
         "latitude": 45.458200,
         "longitude": -73.639600,
-        "image_url": "https://picsum.photos/seed/comm/800/600",
+        "image_url": "/Pics/1712176459788.jpg",
         "difficulty": "medium"
     },
     {
         "name": "Concordia Greenhouse (Loyola)",
         "latitude": 45.457900,
         "longitude": -73.640800,
-        "image_url": "https://picsum.photos/seed/greenhouse/800/600",
+        "image_url": "/Pics/1712176459788.jpg",
         "difficulty": "hard"
     },
     
@@ -154,14 +154,14 @@ SAMPLE_LOCATIONS = [
         "name": "Guy-Concordia Metro Station Entrance",
         "latitude": 45.496600,
         "longitude": -73.577500,
-        "image_url": "https://picsum.photos/seed/metro/800/600",
+        "image_url": "/Pics/1712176459788.jpg",
         "difficulty": "easy"
     },
     {
         "name": "Webster Library",
         "latitude": 45.497000,
         "longitude": -73.578500,
-        "image_url": "https://picsum.photos/seed/webster/800/600",
+        "image_url": "/Pics/1712176459788.jpg",
         "difficulty": "medium"
     },
 ]
