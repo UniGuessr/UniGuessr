@@ -10,7 +10,101 @@ type GuessMapProps = {
   showResult?: boolean;
   guessedLocation?: { lat: number; lng: number } | null;
   actualLocation?: { lat: number; lng: number; name: string } | null;
+  isVisible?: boolean;
+  distanceMeters?: number | null;
 };
+
+// Helper to format distance
+function formatDistance(meters: number): string {
+  if (meters < 1000) {
+    return `${Math.round(meters)}m`;
+  }
+  return `${(meters / 1000).toFixed(2)}km`;
+}
+
+// Create an animated distance label element for the map
+function createDistanceLabelElement(distance: number, angleDeg: number): HTMLDivElement {
+  const el = document.createElement("div");
+  el.className = "distance-label";
+  el.style.cssText = `
+    color: black;
+    padding: 8px 16px;
+    border-radius: 20px;
+    font-weight: 600;
+    font-size: 16px;
+    opacity: 0;
+    transform: scale(0.5) rotate(${angleDeg}deg);
+    transition: all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+    background: white;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+    white-space: nowrap;
+  `;
+  
+  const formatted = formatDistance(distance);
+  el.innerHTML = `<span class="distance-value">0m</span>`;
+  
+  // Trigger animation after a small delay
+  setTimeout(() => {
+    el.style.opacity = "1";
+    el.style.transform = `scale(1) rotate(${angleDeg}deg)`;
+    
+    // Animate the number counting up
+    const targetValue = distance;
+    const duration = 1000;
+    const steps = 30;
+    const stepDuration = duration / steps;
+    let currentStep = 0;
+    
+    const valueSpan = el.querySelector(".distance-value") as HTMLSpanElement;
+    
+    const interval = setInterval(() => {
+      currentStep++;
+      if (currentStep >= steps) {
+        valueSpan.textContent = formatted;
+        clearInterval(interval);
+      } else {
+        const progress = currentStep / steps;
+        const easedProgress = 1 - Math.pow(1 - progress, 3);
+        const currentValue = Math.round(targetValue * easedProgress);
+        valueSpan.textContent = formatDistance(currentValue);
+      }
+    }, stepDuration);
+  }, 400);
+  
+  return el;
+}
+
+// Helper to create the red guess pin marker element
+function createGuessPinElement(): HTMLDivElement {
+  const el = document.createElement("div");
+  el.style.cssText = "width: 30px; height: 40px; cursor: pointer; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));";
+  el.innerHTML = `
+    <svg width="30" height="40" viewBox="0 0 30 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M15 0C6.716 0 0 6.716 0 15c0 10.969 13.5 24.062 14.063 24.625a1.406 1.406 0 0 0 1.874 0C16.5 39.062 30 25.969 30 15 30 6.716 23.284 0 15 0z" fill="#ef4444"/>
+      <circle cx="15" cy="14" r="6" fill="white"/>
+    </svg>
+  `;
+  return el;
+}
+
+// Helper to create the green actual location marker element
+function createActualPinElement(): HTMLDivElement {
+  const el = document.createElement("div");
+  el.style.cssText =
+    "width: 30px; height: 40px; cursor: pointer; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.4));";
+
+  el.innerHTML = `
+    <svg width="30" height="40" viewBox="0 0 30 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path
+        d="M15 0C6.716 0 0 6.716 0 15c0 10.969 13.5 24.062 14.063 24.625a1.406 1.406 0 0 0 1.874 0C16.5 39.062 30 25.969 30 15 30 6.716 23.284 0 15 0z"
+        fill="#16a34a"
+      />
+      <circle cx="15" cy="14" r="6" fill="white"/>
+    </svg>
+  `;
+  return el;
+}
+
 
 export default function GuessMap({
   onGuess,
@@ -18,49 +112,61 @@ export default function GuessMap({
   showResult = false,
   guessedLocation,
   actualLocation,
+  isVisible = true,
+  distanceMeters = null,
 }: GuessMapProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<mapboxgl.Map | null>(null);
+
+  // Guess marker (red pin)
   const markerRef = useRef<mapboxgl.Marker | null>(null);
+
+  // Actual marker (green pin)
   const actualMarkerRef = useRef<mapboxgl.Marker | null>(null);
+
+  // Distance label marker
+  const distanceLabelRef = useRef<mapboxgl.Marker | null>(null);
+
+  // Line id
   const lineRef = useRef<string | null>(null);
-  const [selectedPosition, setSelectedPosition] = useState<{ lat: number; lng: number } | null>(null);
+
+  const [, setSelectedPosition] = useState<{ lat: number; lng: number } | null>(null);
+
+  // Clear the guess marker
+  const clearMarker = useCallback(() => {
+    if (markerRef.current) {
+      markerRef.current.remove();
+      markerRef.current = null;
+    }
+  }, []);
 
   const handleMapClick = useCallback(
     (e: mapboxgl.MapMouseEvent) => {
-      if (disabled) return;
+      if (disabled || showResult) return;
 
       const { lat, lng } = e.lngLat;
       setSelectedPosition({ lat, lng });
 
-      // Update or create marker
+      // Remove old marker and create new one
       if (markerRef.current) {
-        markerRef.current.setLngLat([lng, lat]);
-      } else if (mapRef.current) {
-        const el = document.createElement("div");
-        el.className = "guess-marker";
-        el.innerHTML = `
-          <div style="
-            width: 24px;
-            height: 24px;
-            background: #ef4444;
-            border: 3px solid white;
-            border-radius: 50%;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
-            cursor: pointer;
-          "></div>
-        `;
+        markerRef.current.remove();
+      }
 
-        markerRef.current = new mapboxgl.Marker({ element: el })
+      if (mapRef.current) {
+        markerRef.current = new mapboxgl.Marker({
+          element: createGuessPinElement(),
+          anchor: "bottom",
+        })
           .setLngLat([lng, lat])
           .addTo(mapRef.current);
       }
 
       onGuess(lat, lng);
     },
-    [disabled, onGuess]
+    [disabled, showResult, onGuess]
   );
 
+  // Init map once
   useEffect(() => {
     if (!containerRef.current) return;
     if (mapRef.current) return;
@@ -77,7 +183,7 @@ export default function GuessMap({
       container: containerRef.current,
       style: "mapbox://styles/mapbox/streets-v12",
       center: [-73.578417, 45.497083], // Concordia University
-      zoom: 15,
+      zoom: 17,
       interactive: true,
       dragRotate: false,
       attributionControl: false,
@@ -85,160 +191,286 @@ export default function GuessMap({
 
     mapRef.current.addControl(new mapboxgl.NavigationControl({ showCompass: false }), "top-right");
 
-    mapRef.current.on("click", handleMapClick);
+    mapRef.current.on("load", () => {
+      const map = mapRef.current;
+      if (!map) return;
+
+      // Insert 3D buildings before first symbol layer (labels)
+      const layers = map.getStyle().layers ?? [];
+      const labelLayers = layers.filter((layer) => layer.type === "symbol");
+      const insertBeforeLayerId = labelLayers[0]?.id;
+
+      map.addLayer(
+        {
+          id: "3d-buildings",
+          source: "composite",
+          "source-layer": "building",
+          filter: ["==", "extrude", "true"],
+          type: "fill-extrusion",
+          minzoom: 15,
+          paint: {
+            "fill-extrusion-color": "#ffffff",
+            "fill-extrusion-height": ["get", "height"],
+            "fill-extrusion-base": ["get", "min_height"],
+            "fill-extrusion-opacity": 0.6,
+          },
+        },
+        insertBeforeLayerId
+      );
+    });
 
     return () => {
       mapRef.current?.remove();
       mapRef.current = null;
     };
+  }, []);
+
+  // Separate effect for click handler - ensures it updates when dependencies change
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) return;
+
+    map.on("click", handleMapClick);
+
+    return () => {
+      map.off("click", handleMapClick);
+    };
   }, [handleMapClick]);
 
-  // Handle showing results
+  /**
+   * Ensure markers exist/update when result mode is shown.
+   */
   useEffect(() => {
-    if (!mapRef.current || !showResult) return;
+    if (!mapRef.current) return;
+    const map = mapRef.current;
 
-    // Show actual location marker
-    if (actualLocation && !actualMarkerRef.current) {
-      const el = document.createElement("div");
-      el.innerHTML = `
-        <div style="
-          width: 28px;
-          height: 28px;
-          background: #22c55e;
-          border: 3px solid white;
-          border-radius: 50%;
-          box-shadow: 0 2px 8px rgba(0,0,0,0.3);
-          display: flex;
-          align-items: center;
-          justify-content: center;
-        ">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="white">
-            <path d="M20 6L9 17l-5-5" stroke="white" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
-          </svg>
-        </div>
-      `;
-
-      actualMarkerRef.current = new mapboxgl.Marker({ element: el })
-        .setLngLat([actualLocation.lng, actualLocation.lat])
-        .setPopup(new mapboxgl.Popup({ offset: 25 }).setText(actualLocation.name))
-        .addTo(mapRef.current);
-
-      actualMarkerRef.current.togglePopup();
+    // --- Ensure GUESS marker is present when we have a guessed location ---
+    if (guessedLocation) {
+      // Remove and recreate to ensure visibility
+      if (markerRef.current) {
+        markerRef.current.remove();
+      }
+      markerRef.current = new mapboxgl.Marker({
+        element: createGuessPinElement(),
+        anchor: "bottom",
+      })
+        .setLngLat([guessedLocation.lng, guessedLocation.lat])
+        .addTo(map);
     }
 
-    // Draw line between guessed and actual locations
-    if (guessedLocation && actualLocation && mapRef.current) {
-      const map = mapRef.current;
-
-      // Wait for style to load
-      const addLine = () => {
-        if (lineRef.current && map.getSource(lineRef.current)) {
-          map.removeLayer(lineRef.current);
-          map.removeSource(lineRef.current);
-        }
-
-        const sourceId = `line-${Date.now()}`;
-        lineRef.current = sourceId;
-
-        map.addSource(sourceId, {
-          type: "geojson",
-          data: {
-            type: "Feature",
-            properties: {},
-            geometry: {
-              type: "LineString",
-              coordinates: [
-                [guessedLocation.lng, guessedLocation.lat],
-                [actualLocation.lng, actualLocation.lat],
-              ],
-            },
-          },
-        });
-
-        map.addLayer({
-          id: sourceId,
-          type: "line",
-          source: sourceId,
-          layout: {
-            "line-join": "round",
-            "line-cap": "round",
-          },
-          paint: {
-            "line-color": "#6366f1",
-            "line-width": 3,
-            "line-dasharray": [2, 2],
-          },
-        });
-
-        // Fit bounds to show both markers
-        const bounds = new mapboxgl.LngLatBounds()
-          .extend([guessedLocation.lng, guessedLocation.lat])
-          .extend([actualLocation.lng, actualLocation.lat]);
-
-        map.fitBounds(bounds, { padding: 80, maxZoom: 17 });
-      };
-
-      if (map.isStyleLoaded()) {
-        addLine();
-      } else {
-        map.on("load", addLine);
+    // --- Actual marker only in RESULT mode ---
+    if (showResult && actualLocation) {
+      // Remove and recreate to ensure visibility
+      if (actualMarkerRef.current) {
+        actualMarkerRef.current.remove();
       }
+      actualMarkerRef.current = new mapboxgl.Marker({
+        element: createActualPinElement(),
+        anchor: "bottom",
+      })
+        .setLngLat([actualLocation.lng, actualLocation.lat])
+        .addTo(map);
     }
   }, [showResult, guessedLocation, actualLocation]);
 
-  // Cleanup result markers when result changes
+  /**
+   * Draw line + fit bounds when result is shown and both points exist
+   */
   useEffect(() => {
-    if (!showResult) {
-      actualMarkerRef.current?.remove();
-      actualMarkerRef.current = null;
+    if (!mapRef.current || !showResult || !guessedLocation || !actualLocation) return;
 
-      if (mapRef.current && lineRef.current) {
-        try {
-          if (mapRef.current.getLayer(lineRef.current)) {
-            mapRef.current.removeLayer(lineRef.current);
-          }
-          if (mapRef.current.getSource(lineRef.current)) {
-            mapRef.current.removeSource(lineRef.current);
-          }
-        } catch {
-          // Ignore errors during cleanup
-        }
-        lineRef.current = null;
+    const map = mapRef.current;
+
+    const addLine = () => {
+      // Cleanup old line if any
+      if (lineRef.current && map.getSource(lineRef.current)) {
+        if (map.getLayer(lineRef.current)) map.removeLayer(lineRef.current);
+        map.removeSource(lineRef.current);
       }
+
+      const sourceId = `line-${Date.now()}`;
+      lineRef.current = sourceId;
+
+      map.addSource(sourceId, {
+        type: "geojson",
+        data: {
+          type: "Feature",
+          properties: {},
+          geometry: {
+            type: "LineString",
+            coordinates: [
+              [guessedLocation.lng, guessedLocation.lat],
+              [actualLocation.lng, actualLocation.lat],
+            ],
+          },
+        },
+      });
+
+      map.addLayer({
+        id: sourceId,
+        type: "line",
+        source: sourceId,
+        layout: {
+          "line-join": "round",
+          "line-cap": "round",
+        },
+        paint: {
+          "line-color": "#6366f1",
+          "line-width": 3,
+          "line-dasharray": [2, 2],
+        },
+      });
+
+      // Fit bounds to show both markers
+      const bounds = new mapboxgl.LngLatBounds()
+        .extend([guessedLocation.lng, guessedLocation.lat])
+        .extend([actualLocation.lng, actualLocation.lat]);
+
+      map.fitBounds(bounds, { padding: 80, maxZoom: 17 });
+    };
+
+    if (map.isStyleLoaded()) addLine();
+    else map.once("load", addLine);
+  }, [showResult, guessedLocation, actualLocation]);
+
+  /**
+   * Show animated distance label at midpoint of line, rotated parallel to the line
+   */
+  useEffect(() => {
+    if (!mapRef.current || !showResult || !guessedLocation || !actualLocation || distanceMeters === null) {
+      return;
+    }
+
+    const map = mapRef.current;
+
+    // Calculate midpoint
+    const midLng = (guessedLocation.lng + actualLocation.lng) / 2;
+    const midLat = (guessedLocation.lat + actualLocation.lat) / 2;
+
+    // Calculate angle using screen coordinates for accurate rotation
+    const guessPoint = map.project([guessedLocation.lng, guessedLocation.lat]);
+    const actualPoint = map.project([actualLocation.lng, actualLocation.lat]);
+    
+    const dx = actualPoint.x - guessPoint.x;
+    const dy = actualPoint.y - guessPoint.y;
+    // Note: atan2 takes (y, x) so dy comes first
+    let angleDeg = Math.atan2(dy, dx) * (180 / Math.PI);
+    
+    // Keep text readable (not upside down)
+    if (angleDeg > 90) angleDeg -= 180;
+    if (angleDeg < -90) angleDeg += 180;
+
+    // Remove old label if exists
+    if (distanceLabelRef.current) {
+      distanceLabelRef.current.remove();
+    }
+
+    // Create new distance label marker with rotation
+    distanceLabelRef.current = new mapboxgl.Marker({
+      element: createDistanceLabelElement(distanceMeters, angleDeg),
+      anchor: "center",
+      rotationAlignment: "map",
+      pitchAlignment: "map"
+    })
+      .setLngLat([midLng, midLat])
+      .addTo(map);
+      
+    // Update rotation when map rotates or moves
+    const updateRotation = () => {
+      if (!distanceLabelRef.current) return;
+      
+      const guessPoint = map.project([guessedLocation.lng, guessedLocation.lat]);
+      const actualPoint = map.project([actualLocation.lng, actualLocation.lat]);
+      
+      const dx = actualPoint.x - guessPoint.x;
+      const dy = actualPoint.y - guessPoint.y;
+      let angleDeg = Math.atan2(dy, dx) * (180 / Math.PI);
+      
+      if (angleDeg > 90) angleDeg -= 180;
+      if (angleDeg < -90) angleDeg += 180;
+      
+      const el = distanceLabelRef.current.getElement();
+      el.style.transform = `scale(1) rotate(${angleDeg}deg)`;
+    };
+    
+    map.on('move', updateRotation);
+    map.on('zoom', updateRotation);
+    
+    return () => {
+      map.off('move', updateRotation);
+      map.off('zoom', updateRotation);
+    };
+  }, [showResult, guessedLocation, actualLocation, distanceMeters]);
+
+  /**
+   * Cleanup result markers + line when leaving result mode
+   */
+  useEffect(() => {
+    if (showResult) return;
+
+    // Remove actual marker
+    actualMarkerRef.current?.remove();
+    actualMarkerRef.current = null;
+
+    // Remove distance label
+    distanceLabelRef.current?.remove();
+    distanceLabelRef.current = null;
+
+    // Remove line
+    if (mapRef.current && lineRef.current) {
+      try {
+        if (mapRef.current.getLayer(lineRef.current)) {
+          mapRef.current.removeLayer(lineRef.current);
+        }
+        if (mapRef.current.getSource(lineRef.current)) {
+          mapRef.current.removeSource(lineRef.current);
+        }
+      } catch {
+        // ignore
+      }
+      lineRef.current = null;
     }
   }, [showResult]);
 
-  // Reset marker when disabled changes to false (new round)
+  /**
+   * Reset guess marker when new round starts (disabled becomes false) and not result mode.
+   */
   useEffect(() => {
     if (!disabled && !showResult) {
-      markerRef.current?.remove();
-      markerRef.current = null;
+      clearMarker();
       setSelectedPosition(null);
 
-      // Reset map view
       if (mapRef.current) {
         mapRef.current.flyTo({
           center: [-73.578417, 45.497083],
-          zoom: 15,
+          zoom: 17,
           duration: 1000,
         });
       }
     }
-  }, [disabled, showResult]);
+  }, [disabled, showResult, clearMarker]);
+
+  /**
+   * Resize map when visibility changes (fixes rendering issues during animations)
+   */
+  useEffect(() => {
+    if (isVisible && mapRef.current) {
+      const timers = [100, 300, 500, 600].map((delay) =>
+        setTimeout(() => mapRef.current?.resize(), delay)
+      );
+      return () => timers.forEach(clearTimeout);
+    }
+  }, [isVisible]);
 
   return (
     <div className="relative w-full h-full rounded-xl overflow-hidden shadow-lg border-2 border-slate-200">
       <div ref={containerRef} className="w-full h-full" />
+
       {disabled && !showResult && (
         <div className="absolute inset-0 bg-black/20 flex items-center justify-center">
           <span className="text-white font-semibold bg-black/50 px-4 py-2 rounded-lg">
             Waiting...
           </span>
-        </div>
-      )}
-      {!disabled && !selectedPosition && (
-        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-white/95 backdrop-blur px-4 py-2 rounded-full shadow-lg text-sm font-medium text-slate-700">
-          Click on the map to place your guess
         </div>
       )}
     </div>

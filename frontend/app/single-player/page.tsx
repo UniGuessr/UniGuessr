@@ -180,7 +180,7 @@ export default function SinglePlayerPage() {
   };
 
   return (
-    <div className="min-h-screen pb-8">
+    <div>
       <AnimatePresence mode="wait">
         {/* SETUP SCREEN */}
         {gameState === "setup" && (
@@ -201,7 +201,7 @@ export default function SinglePlayerPage() {
                 </p>
               </CardHeader>
 
-              <CardBody className="gap-6 pt-6">
+              <CardBody className="gap-6">
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-2">
                     Number of Rounds
@@ -304,7 +304,7 @@ export default function SinglePlayerPage() {
             />
 
             {/* Main game area */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 h-[calc(100%-6rem)]">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 h-[calc(100%-1rem)]">
               {/* Location image */}
               <Card className="overflow-hidden">
                 <CardBody className="p-0 h-full">
@@ -329,7 +329,7 @@ export default function SinglePlayerPage() {
               </Card>
 
               {/* Map for guessing */}
-              <div className="flex flex-col gap-3 min-h-[300px]">
+              <div className="flex flex-col gap-3">
                 <div className="flex-1">
                   <GuessMap onGuess={handleGuessSelect} disabled={loading} />
                 </div>
@@ -373,7 +373,7 @@ export default function SinglePlayerPage() {
             </div>
 
             {/* Result content */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 h-[calc(100%-6rem)]">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 h-[calc(100%-1rem)]">
               {/* Score card */}
               <Card className="bg-gradient-to-br from-slate-50 to-white">
                 <CardBody className="flex flex-col items-center justify-center gap-6 p-8">
@@ -429,7 +429,7 @@ export default function SinglePlayerPage() {
               </Card>
 
               {/* Map showing result */}
-              <div className="min-h-[300px]">
+              <div>
                 <GuessMap
                   onGuess={() => {}}
                   disabled
@@ -444,6 +444,7 @@ export default function SinglePlayerPage() {
                     lng: guessResult.actual_location.longitude,
                     name: guessResult.actual_location.name,
                   }}
+                  distanceMeters={guessResult.distance_meters}
                 />
               </div>
             </div>

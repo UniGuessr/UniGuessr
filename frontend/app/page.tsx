@@ -2,7 +2,7 @@
 
 import { Link } from "@heroui/link";
 import { Button } from "@heroui/button";
-import BackgroundMap from "@/components/background";
+// import BackgroundMap from "@/components/background";
 
 export default function Home() {
   return (
