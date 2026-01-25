@@ -102,7 +102,6 @@ export default function SinglePlayerPage() {
 
     if (guessResult.game_complete) {
       setGameState("finished");
-      setShowLeaderboardModal(true);
       return;
     }
 
@@ -136,6 +135,9 @@ export default function SinglePlayerPage() {
         difficulty,
       });
       setScoreSaved(true);
+      setTimeout(() => {
+        setShowLeaderboardModal(false);
+      }, 1500);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to save score");
     } finally {
@@ -143,8 +145,10 @@ export default function SinglePlayerPage() {
     }
   };
   
-  const handleSkipSaveScore = () => {
+  const handleCloseModal = () => {
     setShowLeaderboardModal(false);
+    setUsername("");
+    setError(null);
   };
 
   const resetGame = () => {
@@ -530,24 +534,53 @@ export default function SinglePlayerPage() {
                 </motion.div>
               </CardBody>
 
-              <CardFooter className="flex gap-3 p-6 pt-0">
-                <Button
-                  color="primary"
-                  size="lg"
-                  className="flex-1 font-semibold"
-                  onPress={resetGame}
-                >
-                  Play Again
-                </Button>
-                <Button
-                  as={Link}
-                  href="/"
-                  variant="bordered"
-                  size="lg"
-                  className="flex-1 font-semibold"
-                >
-                  Home
-                </Button>
+              <CardFooter className="flex flex-col gap-3 p-6 pt-0">
+                {!scoreSaved && (
+                  <Button
+                    color="success"
+                    size="lg"
+                    className="w-full font-semibold"
+                    onPress={() => setShowLeaderboardModal(true)}
+                  >
+                    Save to Leaderboard
+                  </Button>
+                )}
+                {scoreSaved && (
+                  <div className="w-full p-3 bg-emerald-50 rounded-lg text-center">
+                    <p className="text-emerald-700 font-medium">✓ Score saved to leaderboard!</p>
+                  </div>
+                )}
+                <div className="flex flex-col gap-2 w-full">
+                  <div className="flex gap-3 w-full">
+                    <Button
+                      color="primary"
+                      size="lg"
+                      className="flex-1 font-semibold"
+                      onPress={resetGame}
+                    >
+                      Play Again
+                    </Button>
+                    <Button
+                      as={Link}
+                      href="/leaderboard"
+                      variant="bordered"
+                      size="lg"
+                      className="flex-1 font-semibold"
+                      startContent={<span>🏆</span>}
+                    >
+                      Leaderboard
+                    </Button>
+                  </div>
+                  <Button
+                    as={Link}
+                    href="/"
+                    variant="light"
+                    size="md"
+                    className="w-full"
+                  >
+                    Back to Home
+                  </Button>
+                </div>
               </CardFooter>
             </Card>
           </motion.div>
@@ -557,9 +590,8 @@ export default function SinglePlayerPage() {
       {/* Save Score Modal */}
       <Modal 
         isOpen={showLeaderboardModal} 
-        onClose={() => !scoreSaved && handleSkipSaveScore()}
-        isDismissable={!isSavingScore}
-        hideCloseButton={scoreSaved}
+        onClose={handleCloseModal}
+        isDismissable={!isSavingScore && !scoreSaved}
       >
         <ModalContent>
           <ModalHeader className="flex flex-col gap-1">
@@ -610,26 +642,14 @@ export default function SinglePlayerPage() {
             )}
           </ModalBody>
           <ModalFooter>
-            {scoreSaved ? (
-              <Button 
-                color="primary" 
-                onPress={() => {
-                  setShowLeaderboardModal(false);
-                  setUsername("");
-                  setScoreSaved(false);
-                }}
-                className="w-full"
-              >
-                Close
-              </Button>
-            ) : (
+            {!scoreSaved && (
               <>
                 <Button 
                   variant="light" 
-                  onPress={handleSkipSaveScore}
+                  onPress={handleCloseModal}
                   isDisabled={isSavingScore}
                 >
-                  Skip
+                  Cancel
                 </Button>
                 <Button 
                   color="primary" 

@@ -52,6 +52,19 @@ export default function Home() {
             </Button>
           </div>
 
+          {/* Leaderboard Button */}
+          <Button
+            as={Link}
+            href="/leaderboard"
+            size="lg"
+            className="min-w-[160px] border-2 border-emerald-400/50 bg-emerald-400/20 px-6 py-5 font-medium text-white backdrop-blur-sm transition-all hover:bg-emerald-400/30"
+            radius="md"
+            variant="bordered"
+            startContent={<span className="text-xl">🏆</span>}
+          >
+            Leaderboard
+          </Button>
+
           {/* Minimal stats */}
           <div className="flex items-center gap-6 text-sm text-white/40">
             <span>100+ locations</span>
