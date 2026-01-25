@@ -7,12 +7,15 @@ import { Select, SelectItem } from "@heroui/select";
 import { Spinner } from "@heroui/spinner";
 import { Progress } from "@heroui/progress";
 import { Link } from "@heroui/link";
+import { Modal, ModalContent, ModalHeader, ModalBody, ModalFooter } from "@heroui/modal";
+import { Input } from "@heroui/input";
 import { motion, AnimatePresence } from "framer-motion";
 import GuessMap from "@/components/guess-map";
 import {
   createSession,
   getCurrentLocation,
   submitGuess,
+  saveScoreToLeaderboard,
   type Session,
   type CurrentLocation,
   type GuessResult,
@@ -46,6 +49,12 @@ export default function SinglePlayerPage() {
   // UI state
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  
+  // Leaderboard state
+  const [showLeaderboardModal, setShowLeaderboardModal] = useState(false);
+  const [username, setUsername] = useState("");
+  const [isSavingScore, setIsSavingScore] = useState(false);
+  const [scoreSaved, setScoreSaved] = useState(false);
 
   const startGame = async () => {
     setLoading(true);
@@ -93,6 +102,7 @@ export default function SinglePlayerPage() {
 
     if (guessResult.game_complete) {
       setGameState("finished");
+      setShowLeaderboardModal(true);
       return;
     }
 
@@ -111,6 +121,31 @@ export default function SinglePlayerPage() {
       setLoading(false);
     }
   };
+  
+  const handleSaveScore = async () => {
+    if (!username.trim() || !guessResult) return;
+    
+    setIsSavingScore(true);
+    setError(null);
+    
+    try {
+      await saveScoreToLeaderboard({
+        username: username.trim(),
+        score: guessResult.total_score,
+        rounds,
+        difficulty,
+      });
+      setScoreSaved(true);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to save score");
+    } finally {
+      setIsSavingScore(false);
+    }
+  };
+  
+  const handleSkipSaveScore = () => {
+    setShowLeaderboardModal(false);
+  };
 
   const resetGame = () => {
     setGameState("setup");
@@ -120,6 +155,9 @@ export default function SinglePlayerPage() {
     setSelectedGuess(null);
     setRoundScores([]);
     setError(null);
+    setShowLeaderboardModal(false);
+    setUsername("");
+    setScoreSaved(false);
   };
 
   const formatDistance = (meters: number): string => {
@@ -515,6 +553,97 @@ export default function SinglePlayerPage() {
           </motion.div>
         )}
       </AnimatePresence>
+      
+      {/* Save Score Modal */}
+      <Modal 
+        isOpen={showLeaderboardModal} 
+        onClose={() => !scoreSaved && handleSkipSaveScore()}
+        isDismissable={!isSavingScore}
+        hideCloseButton={scoreSaved}
+      >
+        <ModalContent>
+          <ModalHeader className="flex flex-col gap-1">
+            {scoreSaved ? "Score Saved!" : "Save Your Score"}
+          </ModalHeader>
+          <ModalBody>
+            {scoreSaved ? (
+              <div className="text-center py-4">
+                <div className="text-6xl mb-4">🎉</div>
+                <p className="text-lg text-slate-700">
+                  Your score has been saved to the leaderboard!
+                </p>
+                <p className="text-3xl font-bold text-indigo-600 mt-4">
+                  {guessResult?.total_score.toLocaleString()} points
+                </p>
+              </div>
+            ) : (
+              <>
+                <p className="text-slate-600 mb-2">
+                  Great game! Enter your username to save your score to the leaderboard.
+                </p>
+                <div className="bg-indigo-50 p-4 rounded-lg mb-4">
+                  <p className="text-2xl font-bold text-indigo-600 text-center">
+                    {guessResult?.total_score.toLocaleString()} points
+                  </p>
+                  <p className="text-sm text-slate-500 text-center">
+                    {rounds} rounds • {difficulty} difficulty
+                  </p>
+                </div>
+                <Input
+                  label="Username"
+                  placeholder="Enter your username"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  maxLength={50}
+                  isDisabled={isSavingScore}
+                  autoFocus
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && username.trim()) {
+                      handleSaveScore();
+                    }
+                  }}
+                />
+                {error && (
+                  <p className="text-red-500 text-sm mt-2">{error}</p>
+                )}
+              </>
+            )}
+          </ModalBody>
+          <ModalFooter>
+            {scoreSaved ? (
+              <Button 
+                color="primary" 
+                onPress={() => {
+                  setShowLeaderboardModal(false);
+                  setUsername("");
+                  setScoreSaved(false);
+                }}
+                className="w-full"
+              >
+                Close
+              </Button>
+            ) : (
+              <>
+                <Button 
+                  variant="light" 
+                  onPress={handleSkipSaveScore}
+                  isDisabled={isSavingScore}
+                >
+                  Skip
+                </Button>
+                <Button 
+                  color="primary" 
+                  onPress={handleSaveScore}
+                  isLoading={isSavingScore}
+                  isDisabled={!username.trim() || isSavingScore}
+                >
+                  Save Score
+                </Button>
+              </>
+            )}
+          </ModalFooter>
+        </ModalContent>
+      </Modal>
     </div>
   );
 }
