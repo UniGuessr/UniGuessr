@@ -11,7 +11,7 @@ import { uploadLocation } from "@/lib/api";
 import LocationPickerMap from "@/components/location-picker-map";
 import FloorSelector from "@/components/floor-selector";
 import { PixelButton } from "@/components/pixel-button";
-import { findNearbyBuilding, BUILDINGS_WITH_FLOORS, getBuildingById } from "@/config/buildings";
+import { findNearbyBuilding, BUILDINGS_WITH_FLOORS, getBuildingById, type Building} from "@/config/buildings";
 import { ArrowLeft, Upload, Trash2, CheckCircle2, MapPin } from "lucide-react"; // Optional: recommended for a sleek look
 
 const DIFFICULTY_OPTIONS = [
@@ -135,8 +135,8 @@ export default function UploadLocationPage() {
                 <div className="w-20 h-20 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto mb-6">
                   <CheckCircle2 size={40} />
                 </div>
-                <h2 className="text-3xl font-bold">Location Uploaded!</h2>
-                <p className="text-slate-500">Your contribution is now live in the pool.</p>
+                <h2 className="text-2xl font-bold font-mono uppercase tracking-wider">Location Uploaded!</h2>
+                <p className="text-slate-500 text-xs font-mono uppercase tracking-wider">Your contribution is now live in the pool.</p>
                 <div className="mt-6">
                   <Link href="/">
                     <PixelButton variant="secondary" size="md">
@@ -144,16 +144,12 @@ export default function UploadLocationPage() {
                     </PixelButton>
                   </Link>
                 </div>
-                <h2 className="text-2xl font-bold font-mono uppercase tracking-wider">Location Uploaded!</h2>
-                <p className="text-slate-500 text-xs font-mono uppercase tracking-wider">Your contribution is now live in the pool.</p>
               </div>
             </motion.div>
           ) : (
             <div className="flex flex-col h-full gap-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <h1 className="text-2xl font-bold tracking-tight">Add New Location</h1>
-                  <p className="text-slate-500 text-sm mt-1">Help others explore Concordia's campus.</p>
                   <h1 className="text-xl font-bold font-mono uppercase tracking-wider">Add New Location</h1>
                   <p className="text-orange-500 text-xs font-mono uppercase tracking-wider mt-1">Help others explore Concordia’s campus.</p>
                 </div>
@@ -262,7 +258,6 @@ export default function UploadLocationPage() {
                   )}
 
                   <div className="space-y-2">
-                    <div className="text-sm font-medium px-1">Location Image</div>
                     <label className="text-xs text-orange-500 font-mono uppercase tracking-wider px-1">Location Image</label>
                     {imagePreview ? (
                       <div className="group relative rounded-xl overflow-hidden border-2 border-slate-100 shadow-sm">
@@ -292,12 +287,8 @@ export default function UploadLocationPage() {
                           onChange={handleImageChange}
                         />
                         <Upload className="text-slate-400 group-hover:text-indigo-500 mb-2 transition-colors pointer-events-none" size={32} />
-                        <span className="text-sm text-slate-500 font-medium pointer-events-none">Click to upload photo</span>
+                        <span className="text-xs text-slate-500 font-mono uppercase tracking-wider pointer-events-none">Click to upload photo</span>
                         <span className="text-xs text-slate-400 mt-1 pointer-events-none">PNG, JPG, WEBP up to 10MB</span>
-                      <label className="flex flex-col items-center justify-center w-full h-[445px] border-2 border-dashed border-slate-200 rounded-xl cursor-pointer hover:bg-slate-50 hover:border-indigo-300 transition-all group">
-                        <Upload className="text-slate-400 group-hover:text-indigo-500 mb-2 transition-colors" />
-                        <span className="text-xs text-slate-500 font-mono uppercase tracking-wider">Click to upload photo</span>
-                        <input type="file" className="hidden" accept="image/*" onChange={handleImageChange} />
                       </label>
                     )}
                   </div>
