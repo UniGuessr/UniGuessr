@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, use } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Card, CardBody, CardHeader } from "@heroui/card";
+import { Link } from "@heroui/link";
 import { motion, AnimatePresence } from "framer-motion";
 import { PixelButton } from "@/components/pixel-button";
 import {
@@ -174,24 +174,32 @@ export default function LobbyPage({ params }: { params: Promise<{ code: string }
 
   if (loading) {
     return (
-      <main className="min-h-screen flex items-center justify-center">
-        <Loader2 className="animate-spin" size={32} />
-      </main>
+      <div className="min-h-[80vh] flex items-center justify-center">
+        <Loader2 className="animate-spin text-white/60" size={32} />
+      </div>
     );
   }
 
   if (error && !lobby) {
     return (
-      <main className="min-h-screen flex items-center justify-center p-4">
-        <Card className="max-w-md">
-          <CardBody className="text-center space-y-4">
-            <p className="text-red-600">{error}</p>
-            <PixelButton onPress={() => router.push("/multiplayer")}>
+      <div className="relative z-10 min-h-[80vh] flex items-center justify-center px-4">
+        <div className="relative w-full max-w-md rounded-2xl overflow-hidden border border-white/10 backdrop-blur-sm">
+          {/* Card Background */}
+          <div className="pointer-events-none absolute inset-0">
+            <div className="absolute inset-0 bg-gradient-to-b from-zinc-950/25 via-transparent to-zinc-950/45" />
+            <div className="absolute inset-0 bg-gradient-to-r from-zinc-950/45 via-zinc-950/15 to-transparent" />
+            <div className="absolute inset-0 [background:radial-gradient(90%_60%_at_10%_70%,rgba(0,0,0,.55)_0%,transparent_70%)]" />
+          </div>
+
+          {/* Card Content */}
+          <div className="relative z-10 p-8 space-y-6 text-center">
+            <p className="text-red-400 font-mono uppercase tracking-wider text-sm">{error}</p>
+            <PixelButton onClick={() => router.push("/multiplayer")} variant="secondary">
               Back to Multiplayer
             </PixelButton>
-          </CardBody>
-        </Card>
-      </main>
+          </div>
+        </div>
+      </div>
     );
   }
 
@@ -202,149 +210,178 @@ export default function LobbyPage({ params }: { params: Promise<{ code: string }
   const allReady = lobby.players.length >= 2 && lobby.players.every((p) => p.ready);
 
   return (
-    <main className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-slate-50 to-indigo-50">
-      <div className="w-full max-w-2xl space-y-6">
-        <div className="text-center space-y-2">
-          <h1 className="text-3xl font-bold tracking-tight">Lobby</h1>
-          <div className="flex items-center justify-center gap-2">
-            <code className="text-2xl font-mono font-bold bg-white px-4 py-2 rounded-lg border-2 border-indigo-200">
-              {lobbyCode}
-            </code>
-            <button
-              onClick={handleCopyCode}
-              className="p-2 hover:bg-white rounded-lg transition-colors"
-              title="Copy code"
-            >
-              {copied ? (
-                <Check size={20} className="text-green-600" />
-              ) : (
-                <Copy size={20} className="text-slate-600" />
+    <div>
+      <AnimatePresence mode="wait">
+        <motion.div
+          key="lobby"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -20 }}
+          className="relative z-10 min-h-[80vh] flex items-center justify-center px-4"
+        >
+          <div className="relative w-full max-w-lg rounded-2xl overflow-hidden border border-white/10 backdrop-blur-sm mt-15">
+            {/* Card Background */}
+            <div className="pointer-events-none absolute inset-0">
+              <div className="absolute inset-0 bg-gradient-to-b from-zinc-950/25 via-transparent to-zinc-950/45" />
+              <div className="absolute inset-0 bg-gradient-to-r from-zinc-950/45 via-zinc-950/15 to-transparent" />
+              <div className="absolute inset-0 [background:radial-gradient(90%_60%_at_10%_70%,rgba(0,0,0,.55)_0%,transparent_70%)]" />
+            </div>
+
+            {/* Card Content */}
+            <div className="relative z-10 p-8 space-y-6">
+              {/* Header */}
+              <div className="text-center space-y-4">
+                <h1 className="text-2xl font-bold text-white font-mono uppercase tracking-wider">Lobby</h1>
+                
+                {/* Lobby Code */}
+                <div className="flex items-center justify-center gap-3">
+                  <code className="text-2xl font-mono font-bold bg-white/10 text-orange-500 px-4 py-2 rounded-lg border border-white/20">
+                    {lobbyCode}
+                  </code>
+                  <button
+                    onClick={handleCopyCode}
+                    className="p-2 hover:bg-white/10 rounded-lg transition-colors cursor-pointer"
+                    title="Copy code"
+                  >
+                    {copied ? (
+                      <Check size={20} className="text-green-400" />
+                    ) : (
+                      <Copy size={20} className="text-white/60" />
+                    )}
+                  </button>
+                </div>
+              </div>
+
+              {/* Lobby Info */}
+              <div className="flex items-center justify-between p-3 bg-white/5 rounded-lg border border-white/10">
+                <div>
+                  <h2 className="text-sm font-bold text-white font-mono uppercase tracking-wider">
+                    {lobby.matchmaking ? "Matchmaking" : "Private Lobby"}
+                  </h2>
+                  <p className="text-xs text-white/40 font-mono uppercase tracking-wider">
+                    {lobby.rounds} rounds • {lobby.difficulty}
+                  </p>
+                </div>
+                <div className="flex items-center gap-1 text-white/60">
+                  <Users size={18} />
+                  <span className="font-semibold font-mono">
+                    {lobby.players.length}/4
+                  </span>
+                </div>
+              </div>
+
+              {/* Player list */}
+              <div className="space-y-3">
+                <h3 className="text-xs font-mono uppercase tracking-wider text-white/40">Players</h3>
+                <div className="space-y-2">
+                  {lobby.players.map((player) => (
+                    <motion.div
+                      key={player.id}
+                      initial={{ opacity: 0, x: -20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      className={`flex items-center justify-between p-3 rounded-lg border ${
+                        player.id === playerId
+                          ? "bg-orange-500/10 border-orange-500/30"
+                          : "bg-white/5 border-white/10"
+                      }`}
+                    >
+                      <div className="flex items-center gap-2">
+                        {player.is_host && (
+                          <Crown size={16} className="text-yellow-500" />
+                        )}
+                        <span className="font-medium text-white font-mono uppercase tracking-wider text-sm">{player.username}</span>
+                        {player.id === playerId && (
+                          <span className="text-xs text-white/40 font-mono">(You)</span>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-2">
+                        {player.ready ? (
+                          <span className="text-xs bg-green-500/20 text-green-400 px-2 py-1 rounded font-mono uppercase tracking-wider">
+                            Ready
+                          </span>
+                        ) : (
+                          <span className="text-xs bg-white/10 text-white/40 px-2 py-1 rounded font-mono uppercase tracking-wider">
+                            Not Ready
+                          </span>
+                        )}
+                      </div>
+                    </motion.div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Error */}
+              {error && (
+                <motion.p
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  className="text-center text-xs font-mono uppercase tracking-wider text-red-400"
+                >
+                  {error}
+                </motion.p>
               )}
-            </button>
+
+              {/* Actions */}
+              <div className="space-y-3 pt-2">
+                <div className="flex gap-3">
+                  {isHost ? (
+                    <>
+                      <PixelButton
+                        onClick={handleToggleReady}
+                        variant="secondary"
+                        className="flex-1"
+                        disabled={!currentPlayer}
+                      >
+                        {currentPlayer?.ready ? "Not Ready" : "Ready"}
+                      </PixelButton>
+                      <PixelButton
+                        onClick={handleStartGame}
+                        isLoading={starting}
+                        className="flex-1"
+                        variant="secondary"
+                        disabled={!allReady || lobby.players.length < 2}
+                      >
+                        Start Game
+                      </PixelButton>
+                    </>
+                  ) : (
+                    <>
+                      <PixelButton
+                        onClick={handleToggleReady}
+                        variant="secondary"
+                        className="flex-1"
+                        disabled={!currentPlayer}
+                      >
+                        {currentPlayer?.ready ? "Not Ready" : "Ready"}
+                      </PixelButton>
+                      <PixelButton
+                        onClick={handleLeave}
+                        variant="secondary"
+                        className="flex-1"
+                      >
+                        Leave
+                      </PixelButton>
+                    </>
+                  )}
+                </div>
+
+                {isHost && !allReady && lobby.players.length >= 2 && (
+                  <p className="text-xs text-center text-white/40 font-mono uppercase tracking-wider">
+                    All players must be ready to start
+                  </p>
+                )}
+
+                <Link
+                  href="/multiplayer"
+                  className="flex items-center justify-center gap-2 py-2 text-orange-500 text-xs font-mono uppercase tracking-wider hover:text-orange-400 transition-colors"
+                >
+                  ← Back
+                </Link>
+              </div>
+            </div>
           </div>
-        </div>
-
-        <Card className="shadow-xl">
-          <CardHeader className="flex flex-col gap-2 pb-4">
-            <div className="flex items-center justify-between w-full">
-              <div>
-                <h2 className="text-xl font-bold">
-                  {lobby.matchmaking ? "Matchmaking" : "Private Lobby"}
-                </h2>
-                <p className="text-sm text-slate-600">
-                  {lobby.rounds} rounds • {lobby.difficulty}
-                </p>
-              </div>
-              <div className="flex items-center gap-1 text-slate-600">
-                <Users size={20} />
-                <span className="font-semibold">
-                  {lobby.players.length}/{4}
-                </span>
-              </div>
-            </div>
-          </CardHeader>
-
-          <CardBody className="space-y-4">
-            {/* Player list */}
-            <div className="space-y-2">
-              <h3 className="text-sm font-semibold text-slate-700">Players</h3>
-              <div className="space-y-2">
-                {lobby.players.map((player) => (
-                  <motion.div
-                    key={player.id}
-                    initial={{ opacity: 0, x: -20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    className={`flex items-center justify-between p-3 rounded-lg border-2 ${
-                      player.id === playerId
-                        ? "bg-indigo-50 border-indigo-300"
-                        : "bg-slate-50 border-slate-200"
-                    }`}
-                  >
-                    <div className="flex items-center gap-2">
-                      {player.is_host && (
-                        <Crown size={16} className="text-yellow-500" />
-                      )}
-                      <span className="font-medium">{player.username}</span>
-                      {player.id === playerId && (
-                        <span className="text-xs text-slate-500">(You)</span>
-                      )}
-                    </div>
-                    <div className="flex items-center gap-2">
-                      {player.ready ? (
-                        <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded">
-                          Ready
-                        </span>
-                      ) : (
-                        <span className="text-xs bg-slate-100 text-slate-600 px-2 py-1 rounded">
-                          Not Ready
-                        </span>
-                      )}
-                    </div>
-                  </motion.div>
-                ))}
-              </div>
-            </div>
-
-            {error && (
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                className="p-3 bg-red-50 text-red-600 text-sm rounded-lg border border-red-100"
-              >
-                {error}
-              </motion.div>
-            )}
-
-            {/* Actions */}
-            <div className="flex gap-3 pt-4">
-              {isHost ? (
-                <>
-                  <PixelButton
-                    onPress={handleToggleReady}
-                    variant="secondary"
-                    className="flex-1"
-                    isDisabled={!currentPlayer}
-                  >
-                    {currentPlayer?.ready ? "Not Ready" : "Ready"}
-                  </PixelButton>
-                  <PixelButton
-                    onPress={handleStartGame}
-                    isLoading={starting}
-                    className="flex-1"
-                    isDisabled={!allReady || lobby.players.length < 2}
-                  >
-                    Start Game
-                  </PixelButton>
-                </>
-              ) : (
-                <>
-                  <PixelButton
-                    onPress={handleToggleReady}
-                    variant="secondary"
-                    className="flex-1"
-                    isDisabled={!currentPlayer}
-                  >
-                    {currentPlayer?.ready ? "Not Ready" : "Ready"}
-                  </PixelButton>
-                  <PixelButton
-                    onPress={handleLeave}
-                    variant="secondary"
-                    className="flex-1"
-                  >
-                    Leave
-                  </PixelButton>
-                </>
-              )}
-            </div>
-
-            {isHost && !allReady && lobby.players.length >= 2 && (
-              <p className="text-xs text-center text-slate-500">
-                All players must be ready to start
-              </p>
-            )}
-          </CardBody>
-        </Card>
-      </div>
-    </main>
+        </motion.div>
+      </AnimatePresence>
+    </div>
   );
 }
