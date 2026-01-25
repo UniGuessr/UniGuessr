@@ -4,7 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 
 from src.database import Database
-from src.routes import locations_router, sessions_router
+from src.routes import locations_router, sessions_router, leaderboard_router
 from src.config import settings
 
 
@@ -38,6 +38,7 @@ app.add_middleware(
 # Include routers
 app.include_router(locations_router)
 app.include_router(sessions_router)
+app.include_router(leaderboard_router)
 
 
 @app.get("/")

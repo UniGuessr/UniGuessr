@@ -19,6 +19,13 @@ class Settings(BaseSettings):
     api_port: int = 8000
     debug: bool = True
     
+    # AWS S3 Configuration
+    aws_access_key_id: str = ""
+    aws_secret_access_key: str = ""
+    aws_region: str = "us-east-2"
+    s3_bucket_name: str = "conuguessr"
+    s3_base_url: str = "https://conuguessr.s3.us-east-2.amazonaws.com"
+    
     model_config = SettingsConfigDict(
         env_file=str(ENV_FILE),
         env_file_encoding="utf-8",

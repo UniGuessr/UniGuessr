@@ -86,14 +86,25 @@ export default function LeaderboardPage() {
                 Compete with players and climb to the top!
               </p>
             </div>
-            <Button
-              as={Link}
-              href="/"
-              variant="bordered"
-              size="lg"
-            >
-              Home
-            </Button>
+            <div className="flex gap-2">
+              <Button
+                as={Link}
+                href="/upload"
+                variant="bordered"
+                size="lg"
+                startContent={<span>📍</span>}
+              >
+                Upload
+              </Button>
+              <Button
+                as={Link}
+                href="/"
+                variant="bordered"
+                size="lg"
+              >
+                Home
+              </Button>
+            </div>
           </div>
 
           {/* Filters */}

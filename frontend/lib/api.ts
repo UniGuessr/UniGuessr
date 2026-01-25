@@ -203,3 +203,35 @@ export async function getUserRank(
 
   return response.json();
 }
+
+// Location upload
+export interface LocationUpload {
+  name: string;
+  latitude: number;
+  longitude: number;
+  difficulty: string;
+  image: File;
+}
+
+export async function uploadLocation(
+  data: LocationUpload
+): Promise<{ id: string; image_url: string; message: string }> {
+  const formData = new FormData();
+  formData.append("name", data.name);
+  formData.append("latitude", data.latitude.toString());
+  formData.append("longitude", data.longitude.toString());
+  formData.append("difficulty", data.difficulty);
+  formData.append("image", data.image);
+
+  const response = await fetch(`${API_BASE_URL}/api/locations`, {
+    method: "POST",
+    body: formData,
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.detail || "Failed to upload location");
+  }
+
+  return response.json();
+}
