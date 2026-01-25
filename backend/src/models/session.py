@@ -21,6 +21,9 @@ class Guess(BaseModel):
     actual_longitude: float = Field(..., description="Actual longitude")
     distance_meters: float = Field(..., description="Distance from actual location in meters")
     points: int = Field(..., description="Points earned for this guess")
+    guessed_floor: Optional[int] = Field(None, description="Floor number guessed (if applicable)")
+    actual_floor: Optional[int] = Field(None, description="Actual floor number (if applicable)")
+    floor_bonus: int = Field(default=0, description="Bonus points for correct floor guess")
     timestamp: datetime = Field(default_factory=datetime.utcnow)
 
 
@@ -76,3 +79,4 @@ class GuessSubmit(BaseModel):
     
     latitude: float = Field(..., description="Guessed latitude")
     longitude: float = Field(..., description="Guessed longitude")
+    floor: Optional[int] = Field(None, description="Guessed floor number (optional, for building bonus)")

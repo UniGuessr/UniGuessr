@@ -173,7 +173,7 @@ export default function GuessMap({
     mapRef.current = new mapboxgl.Map({
       container: containerRef.current,
       style: "mapbox://styles/mapbox/streets-v12",
-      center: [-73.578417, 45.497083], // Concordia University
+      center: [-73.57806418862965, 45.49554505697914], // Centered coordinate
       zoom: 15,
       interactive: true,
       dragRotate: false,
@@ -386,7 +386,7 @@ export default function GuessMap({
 
       if (mapRef.current) {
         mapRef.current.flyTo({
-          center: [-73.578417, 45.497083],
+          center: [-73.57806418862965, 45.49554505697914],
           zoom: 17,
           duration: 1000,
         });

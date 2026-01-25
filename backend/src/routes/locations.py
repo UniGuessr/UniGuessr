@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Optional
 from fastapi import APIRouter, HTTPException, Depends, UploadFile, File, Form
 from motor.motor_asyncio import AsyncIOMotorDatabase
 
@@ -6,6 +6,7 @@ from src.database import get_db
 from src.models.location import LocationCreate, LocationResponse
 from src.services.location_service import LocationService
 from src.services.s3_service import s3_service
+from src.config_buildings import find_nearby_building
 
 router = APIRouter(prefix="/api/locations", tags=["locations"])
 
@@ -22,6 +23,8 @@ async def create_location(
     longitude: float = Form(...),
     difficulty: str = Form("medium"),
     image: UploadFile = File(...),
+    building_id: Optional[str] = Form(None),
+    floor: Optional[int] = Form(None),
     service: LocationService = Depends(get_location_service)
 ):
     """
@@ -33,6 +36,8 @@ async def create_location(
         longitude: Longitude coordinate
         difficulty: Difficulty level (easy, medium, hard)
         image: Image file to upload
+        building_id: Optional building ID (auto-detected if within radius)
+        floor: Optional floor number (defaults to 1 if building_id is set)
         service: Location service dependency
     
     Returns:
@@ -55,13 +60,30 @@ async def create_location(
     if not image_url:
         raise HTTPException(status_code=500, detail="Failed to upload image to S3")
     
+    # Auto-detect building if not provided and within radius
+    detected_building_id = building_id
+    detected_floor = floor
+    
+    if not detected_building_id:
+        nearby_building = find_nearby_building(latitude, longitude)
+        if nearby_building:
+            detected_building_id = nearby_building.id
+            # Default floor to 1 if not provided
+            detected_floor = floor if floor is not None else 1
+    
+    # If building_id is set but no floor, default to 1
+    if detected_building_id and detected_floor is None:
+        detected_floor = 1
+    
     # Create location with S3 URL
     location_data = LocationCreate(
         name=name,
         latitude=latitude,
         longitude=longitude,
         image_url=image_url,
-        difficulty=difficulty
+        difficulty=difficulty,
+        building_id=detected_building_id,
+        floor=detected_floor
     )
     
     location_id = await service.create_location(location_data)

@@ -69,10 +69,12 @@ async def get_current_location(
         raise HTTPException(status_code=404, detail="Current location not found")
     
     # Return location without coordinates (player shouldn't see them yet)
+    # But include building_id if it exists, for floor selector UI
     return {
         "location_id": location.id,
         "image_url": location.image_url,
         "name": location.name,
+        "building_id": location.building_id,
         "round": session.current_round + 1,
         "total_rounds": session.rounds
     }
@@ -95,10 +97,15 @@ async def submit_guess(
     return {
         "distance_meters": result["guess"].distance_meters,
         "points": result["guess"].points,
+        "floor_bonus": result["guess"].floor_bonus,
+        "guessed_floor": result["guess"].guessed_floor,
+        "actual_floor": result["guess"].actual_floor,
         "actual_location": {
             "latitude": result["location"].latitude,
             "longitude": result["location"].longitude,
-            "name": result["location"].name
+            "name": result["location"].name,
+            "building_id": result["location"].building_id,
+            "floor": result["location"].floor
         },
         "guessed_location": {
             "latitude": result["guess"].guessed_latitude,

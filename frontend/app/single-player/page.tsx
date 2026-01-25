@@ -11,6 +11,8 @@ import { Input } from "@heroui/input";
 import { motion, AnimatePresence } from "framer-motion";
 import GuessMap from "@/components/guess-map";
 import { PixelButton } from "@/components/pixel-button";
+import FloorSelector from "@/components/floor-selector";
+import { findNearbyBuilding, type Building } from "@/config/buildings";
 import {
   createSession,
   getCurrentLocation,
@@ -45,6 +47,11 @@ export default function SinglePlayerPage() {
   const [guessResult, setGuessResult] = useState<GuessResult | null>(null);
   const [selectedGuess, setSelectedGuess] = useState<{ lat: number; lng: number } | null>(null);
   const [roundScores, setRoundScores] = useState<number[]>([]);
+
+  // Floor selection state
+  const [nearbyBuilding, setNearbyBuilding] = useState<Building | null>(null);
+  const [showFloorSelector, setShowFloorSelector] = useState(false);
+  const [selectedFloor, setSelectedFloor] = useState<number | null>(null);
 
   // UI state
   const [loading, setLoading] = useState(false);
@@ -95,16 +102,35 @@ export default function SinglePlayerPage() {
 
   const handleGuessSelect = useCallback((lat: number, lng: number) => {
     setSelectedGuess({ lat, lng });
+    
+    // Check if pin is near a building with floors - show selector immediately
+    const building = findNearbyBuilding(lat, lng);
+    if (building) {
+      setNearbyBuilding(building);
+      setShowFloorSelector(true);
+    } else {
+      // Clear floor selection if moving away from building
+      setNearbyBuilding(null);
+      setShowFloorSelector(false);
+      setSelectedFloor(null);
+    }
   }, []);
 
   const submitCurrentGuess = async () => {
+    if (!session || !selectedGuess) return;
+
+    // Submit with selected floor if available, otherwise without floor
+    await finalizeGuessSubmission(selectedFloor);
+  };
+
+  const finalizeGuessSubmission = async (floor: number | null) => {
     if (!session || !selectedGuess) return;
 
     setLoading(true);
     setError(null);
 
     try {
-      const result = await submitGuess(session._id, selectedGuess.lat, selectedGuess.lng);
+      const result = await submitGuess(session._id, selectedGuess.lat, selectedGuess.lng, floor);
       setGuessResult(result);
       setRoundScores((prev) => [...prev, result.points]);
       setGameState("result");
@@ -112,8 +138,12 @@ export default function SinglePlayerPage() {
       setError(err instanceof Error ? err.message : "Failed to submit guess");
     } finally {
       setLoading(false);
+      setShowFloorSelector(false);
+      setSelectedFloor(null);
+      setNearbyBuilding(null);
     }
   };
+
 
   const nextRound = async () => {
     if (!session || !guessResult) return;
@@ -411,9 +441,19 @@ export default function SinglePlayerPage() {
                   transition={{ duration: 0.5, ease: "easeOut" }}
                   className="h-full w-1/2 flex-shrink-0"
                 >
-                  <div className="flex flex-col h-full w-full overflow-hidden">
-                    <div className="flex-1 min-h-0 overflow-hidden">
+                  <div className="flex flex-col h-full w-full overflow-hidden relative">
+                    <div className="flex-1 min-h-0 overflow-hidden relative">
                       <GuessMap onGuess={handleGuessSelect} disabled={loading} />
+                      {/* Floor selector positioned near top-right of map */}
+                      {showFloorSelector && nearbyBuilding && (
+                        <div className="absolute top-4 right-4 z-50">
+                          <FloorSelector
+                            building={nearbyBuilding}
+                            selectedFloor={selectedFloor}
+                            onFloorSelect={setSelectedFloor}
+                          />
+                        </div>
+                      )}
                     </div>
                     <PixelButton
                       size="lg"
@@ -467,15 +507,34 @@ export default function SinglePlayerPage() {
                       initial={{ scale: 0 }}
                       animate={{ scale: 1 }}
                       transition={{ type: "spring", delay: 0.2 }}
-                      className="text-center"
+                      className="text-center w-full"
                     >
                       <p className="text-slate-500 text-sm uppercase tracking-wide mb-2">
                         You scored
                       </p>
-                      <p className={`text-6xl font-bold ${getScoreColor(guessResult.points)}`}>
-                        {guessResult.points.toLocaleString()}
+                      <div className="flex items-baseline justify-center gap-2">
+                        <p className={`text-6xl font-bold ${getScoreColor(guessResult.points - (guessResult.floor_bonus || 0))}`}>
+                          {(guessResult.points - (guessResult.floor_bonus || 0)).toLocaleString()}
+                        </p>
+                        {guessResult.floor_bonus > 0 && (
+                          <motion.div
+                            initial={{ opacity: 0, scale: 0 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            transition={{ delay: 0.3, type: "spring" }}
+                            className="flex flex-col items-start"
+                          >
+                            <p className="text-2xl font-bold text-purple-600 leading-none">
+                              +{guessResult.floor_bonus}
+                            </p>
+                            <p className="text-[10px] text-purple-500 uppercase tracking-wider">
+                              Floor
+                            </p>
+                          </motion.div>
+                        )}
+                      </div>
+                      <p className="text-slate-400 text-sm mt-1">
+                        Total: {guessResult.points.toLocaleString()} points
                       </p>
-                      <p className="text-slate-400 text-sm mt-1">points</p>
                     </motion.div>
 
                     <motion.div
@@ -489,6 +548,47 @@ export default function SinglePlayerPage() {
                         {formatDistance(guessResult.distance_meters)}
                       </p>
                     </motion.div>
+
+                    {/* Floor bonus display */}
+                    {guessResult.floor_bonus > 0 && (
+                      <motion.div
+                        initial={{ opacity: 0, scale: 0.9 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        transition={{ delay: 0.45, type: "spring" }}
+                        className="w-full p-3 bg-gradient-to-r from-purple-50 to-indigo-50 rounded-xl border-2 border-purple-200"
+                      >
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <p className="text-purple-600 text-xs font-bold uppercase tracking-wide">
+                              🎯 Floor Bonus!
+                            </p>
+                            <p className="text-purple-800 font-semibold text-sm">
+                              Floor {guessResult.actual_floor} - Correct!
+                            </p>
+                          </div>
+                          <p className="text-2xl font-bold text-purple-600">
+                            +{guessResult.floor_bonus}
+                          </p>
+                        </div>
+                      </motion.div>
+                    )}
+
+                    {/* Show floor info even if wrong or not guessed */}
+                    {guessResult.actual_floor && !guessResult.floor_bonus && (
+                      <motion.div
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.45 }}
+                        className="w-full p-2 bg-slate-50 rounded-lg border border-slate-200"
+                      >
+                        <p className="text-slate-600 text-xs text-center">
+                          {guessResult.guessed_floor 
+                            ? `Actual floor: ${guessResult.actual_floor} (You guessed: ${guessResult.guessed_floor})`
+                            : `This was on floor ${guessResult.actual_floor}`
+                          }
+                        </p>
+                      </motion.div>
+                    )}
 
                     <motion.div
                       initial={{ opacity: 0, y: 20 }}
@@ -752,6 +852,7 @@ export default function SinglePlayerPage() {
           </ModalFooter>
         </ModalContent>
       </Modal>
+
     </div>
   );
 }

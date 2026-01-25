@@ -26,6 +26,9 @@ export interface Guess {
   actual_longitude: number;
   distance_meters: number;
   points: number;
+  guessed_floor?: number | null;
+  actual_floor?: number | null;
+  floor_bonus: number;
   timestamp: string;
 }
 
@@ -33,6 +36,7 @@ export interface CurrentLocation {
   location_id: string;
   image_url: string;
   name: string;
+  building_id?: string | null;
   round: number;
   total_rounds: number;
 }
@@ -40,10 +44,15 @@ export interface CurrentLocation {
 export interface GuessResult {
   distance_meters: number;
   points: number;
+  floor_bonus: number;
+  guessed_floor?: number | null;
+  actual_floor?: number | null;
   actual_location: {
     latitude: number;
     longitude: number;
     name: string;
+    building_id?: string | null;
+    floor?: number | null;
   };
   guessed_location: {
     latitude: number;
@@ -97,14 +106,24 @@ export async function getCurrentLocation(sessionId: string): Promise<CurrentLoca
 export async function submitGuess(
   sessionId: string,
   latitude: number,
-  longitude: number
+  longitude: number,
+  floor?: number | null
 ): Promise<GuessResult> {
+  const body: { latitude: number; longitude: number; floor?: number | null } = {
+    latitude,
+    longitude,
+  };
+  
+  if (floor !== undefined && floor !== null) {
+    body.floor = floor;
+  }
+
   const response = await fetch(`${API_BASE_URL}/api/sessions/${sessionId}/guess`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
     },
-    body: JSON.stringify({ latitude, longitude }),
+    body: JSON.stringify(body),
   });
 
   if (!response.ok) {
@@ -210,6 +229,8 @@ export interface LocationUpload {
   latitude: number;
   longitude: number;
   difficulty: string;
+  building_id?: string | null;
+  floor?: number | null;
   image: File;
 }
 
@@ -221,6 +242,15 @@ export async function uploadLocation(
   formData.append("latitude", data.latitude.toString());
   formData.append("longitude", data.longitude.toString());
   formData.append("difficulty", data.difficulty);
+  
+  if (data.building_id) {
+    formData.append("building_id", data.building_id);
+  }
+  
+  if (data.floor !== undefined && data.floor !== null) {
+    formData.append("floor", data.floor.toString());
+  }
+  
   formData.append("image", data.image);
 
   const response = await fetch(`${API_BASE_URL}/api/locations`, {

@@ -112,6 +112,35 @@ class SessionService:
         
         return max(0, round(points))
     
+    def calculate_floor_bonus(self, base_points: int, actual_floor, guessed_floor: Optional[int]) -> int:
+        """Calculate bonus points for correct floor guess.
+        
+        Args:
+            base_points: Base points from distance calculation
+            actual_floor: Actual floor number (if location has one) - can be int or str
+            guessed_floor: Guessed floor number (if user guessed one)
+        
+        Returns:
+            Bonus points (20% of base if correct, 0 otherwise)
+        """
+        # No bonus if actual_floor is empty string or None
+        if actual_floor is None or actual_floor == "":
+            return 0
+        
+        # Only give bonus if both location has floor AND user guessed a floor
+        if guessed_floor is not None:
+            # Convert actual_floor to int if it's a string
+            try:
+                actual_floor_int = int(actual_floor) if isinstance(actual_floor, str) else actual_floor
+                if actual_floor_int == guessed_floor:
+                    # 20% bonus for correct floor
+                    return int(base_points * 0.20)
+            except (ValueError, TypeError):
+                # Invalid floor value, no bonus
+                return 0
+        
+        return 0
+    
     async def submit_guess(self, session_id: str, guess_submit: GuessSubmit) -> Optional[dict]:
         """Submit a guess for the current round."""
         session = await self.get_session(session_id)
@@ -126,14 +155,25 @@ class SessionService:
         if not location:
             return None
         
-        # Calculate distance and points
+        # Calculate distance and base points
         distance = self.calculate_distance(
             guess_submit.latitude,
             guess_submit.longitude,
             location.latitude,
             location.longitude
         )
-        points = self.calculate_points(distance)
+        base_points = self.calculate_points(distance)
+        
+        # Calculate floor bonus if applicable
+        # Bonus is 20% of base points if guessed floor matches actual floor
+        floor_bonus = self.calculate_floor_bonus(
+            base_points,
+            location.floor,
+            guess_submit.floor
+        )
+        
+        # Total points = base + floor bonus
+        total_points = base_points + floor_bonus
         
         # Create guess record
         guess = Guess(
@@ -143,7 +183,10 @@ class SessionService:
             actual_latitude=location.latitude,
             actual_longitude=location.longitude,
             distance_meters=distance,
-            points=points,
+            points=total_points,
+            guessed_floor=guess_submit.floor,
+            actual_floor=location.floor,
+            floor_bonus=floor_bonus,
             timestamp=datetime.utcnow()
         )
         
@@ -156,7 +199,7 @@ class SessionService:
             {"_id": ObjectId(session_id)},
             {
                 "$push": {"guesses": guess.model_dump()},
-                "$inc": {"total_score": points},
+                "$inc": {"total_score": total_points},
                 "$set": {
                     "current_round": new_round,
                     "status": new_status,
@@ -172,5 +215,5 @@ class SessionService:
             "round_complete": True,
             "game_complete": new_status == "completed",
             "current_round": new_round,
-            "total_score": session.total_score + points
+            "total_score": session.total_score + total_points
         }
