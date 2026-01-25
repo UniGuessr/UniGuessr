@@ -44,17 +44,12 @@ export default function RootLayout({
             <main className="mx-auto pt-6 px-6 flex-grow">
               {children}
             </main>
-            {/* <footer className="w-full flex items-center justify-center py-3">
-              <Link
-                isExternal
-                className="flex items-center gap-1 text-current"
-                href="https://heroui.com?utm_source=next-app-template"
-                title="heroui.com homepage"
-              >
-                <span className="text-default-600">Powered by</span>
-                <p className="text-primary">HeroUI</p>
-              </Link>
-            </footer> */}
+            <footer className="w-full flex items-center justify-center py-3">
+             
+              <div className="flex items-center gap-4">
+                <p>Leaderboard</p> * <p>Submit a Location</p>
+              </div>
+            </footer>
           </div>
         </Providers>
       </body>

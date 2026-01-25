@@ -22,7 +22,7 @@ function formatDistance(meters: number): string {
   return `${(meters / 1000).toFixed(2)}km`;
 }
 
-// Create an animated distance label element for the map
+// Create a distance label element for the map with animated numbers
 function createDistanceLabelElement(distance: number, angleDeg: number): HTMLDivElement {
   const el = document.createElement("div");
   el.className = "distance-label";
@@ -32,9 +32,7 @@ function createDistanceLabelElement(distance: number, angleDeg: number): HTMLDiv
     border-radius: 20px;
     font-weight: 600;
     font-size: 16px;
-    opacity: 0;
-    transform: scale(0.5) rotate(${angleDeg}deg);
-    transition: all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+    transform: rotate(${angleDeg}deg);
     background: white;
     box-shadow: 0 2px 8px rgba(0,0,0,0.15);
     white-space: nowrap;
@@ -43,33 +41,27 @@ function createDistanceLabelElement(distance: number, angleDeg: number): HTMLDiv
   const formatted = formatDistance(distance);
   el.innerHTML = `<span class="distance-value">0m</span>`;
   
-  // Trigger animation after a small delay
-  setTimeout(() => {
-    el.style.opacity = "1";
-    el.style.transform = `scale(1) rotate(${angleDeg}deg)`;
-    
-    // Animate the number counting up
-    const targetValue = distance;
-    const duration = 1000;
-    const steps = 30;
-    const stepDuration = duration / steps;
-    let currentStep = 0;
-    
-    const valueSpan = el.querySelector(".distance-value") as HTMLSpanElement;
-    
-    const interval = setInterval(() => {
-      currentStep++;
-      if (currentStep >= steps) {
-        valueSpan.textContent = formatted;
-        clearInterval(interval);
-      } else {
-        const progress = currentStep / steps;
-        const easedProgress = 1 - Math.pow(1 - progress, 3);
-        const currentValue = Math.round(targetValue * easedProgress);
-        valueSpan.textContent = formatDistance(currentValue);
-      }
-    }, stepDuration);
-  }, 400);
+  // Animate the number counting up
+  const targetValue = distance;
+  const duration = 1000;
+  const steps = 30;
+  const stepDuration = duration / steps;
+  let currentStep = 0;
+  
+  const valueSpan = el.querySelector(".distance-value") as HTMLSpanElement;
+  
+  const interval = setInterval(() => {
+    currentStep++;
+    if (currentStep >= steps) {
+      valueSpan.textContent = formatted;
+      clearInterval(interval);
+    } else {
+      const progress = currentStep / steps;
+      const easedProgress = 1 - Math.pow(1 - progress, 3);
+      const currentValue = Math.round(targetValue * easedProgress);
+      valueSpan.textContent = formatDistance(currentValue);
+    }
+  }, stepDuration);
   
   return el;
 }
@@ -183,7 +175,7 @@ export default function GuessMap({
       container: containerRef.current,
       style: "mapbox://styles/mapbox/streets-v12",
       center: [-73.578417, 45.497083], // Concordia University
-      zoom: 17,
+      zoom: 15,
       interactive: true,
       dragRotate: false,
       attributionControl: false,
@@ -343,7 +335,7 @@ export default function GuessMap({
 
     const map = mapRef.current;
 
-    // Calculate midpoint
+    // Calculate midpoint (distance / 2) - label always renders at the halfway point along the line
     const midLng = (guessedLocation.lng + actualLocation.lng) / 2;
     const midLat = (guessedLocation.lat + actualLocation.lat) / 2;
 
@@ -390,7 +382,7 @@ export default function GuessMap({
       if (angleDeg < -90) angleDeg += 180;
       
       const el = distanceLabelRef.current.getElement();
-      el.style.transform = `scale(1) rotate(${angleDeg}deg)`;
+      el.style.transform = `rotate(${angleDeg}deg)`;
     };
     
     map.on('move', updateRotation);
@@ -403,18 +395,20 @@ export default function GuessMap({
   }, [showResult, guessedLocation, actualLocation, distanceMeters]);
 
   /**
-   * Cleanup result markers + line when leaving result mode
+   * Cleanup result markers + line when leaving result mode with smooth animation
    */
   useEffect(() => {
     if (showResult) return;
 
+    // Remove distance label
+    if (distanceLabelRef.current) {
+      distanceLabelRef.current.remove();
+      distanceLabelRef.current = null;
+    }
+
     // Remove actual marker
     actualMarkerRef.current?.remove();
     actualMarkerRef.current = null;
-
-    // Remove distance label
-    distanceLabelRef.current?.remove();
-    distanceLabelRef.current = null;
 
     // Remove line
     if (mapRef.current && lineRef.current) {

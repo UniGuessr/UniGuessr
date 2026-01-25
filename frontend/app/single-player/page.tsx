@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { Button } from "@heroui/button";
 import { Card, CardBody, CardHeader, CardFooter } from "@heroui/card";
 import { Select, SelectItem } from "@heroui/select";
@@ -55,10 +55,28 @@ export default function SinglePlayerPage() {
   const [username, setUsername] = useState("");
   const [isSavingScore, setIsSavingScore] = useState(false);
   const [scoreSaved, setScoreSaved] = useState(false);
+  
+  // Map reveal timer
+  const [mapCountdown, setMapCountdown] = useState(5);
+  const [showMap, setShowMap] = useState(false);
+
+  // Countdown timer effect
+  useEffect(() => {
+    if (gameState === "playing" && mapCountdown > 0) {
+      const timer = setTimeout(() => {
+        setMapCountdown((prev) => prev - 1);
+      }, 1000);
+      return () => clearTimeout(timer);
+    } else if (gameState === "playing" && mapCountdown === 0 && !showMap) {
+      setShowMap(true);
+    }
+  }, [gameState, mapCountdown, showMap]);
 
   const startGame = async () => {
     setLoading(true);
     setError(null);
+    setMapCountdown(5);
+    setShowMap(false);
 
     try {
       const newSession = await createSession({ rounds, difficulty });
@@ -107,6 +125,8 @@ export default function SinglePlayerPage() {
 
     setLoading(true);
     setError(null);
+    setMapCountdown(5);
+    setShowMap(false);
 
     try {
       const location = await getCurrentLocation(session._id);
@@ -189,6 +209,7 @@ export default function SinglePlayerPage() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
+            transition={{ duration: 0.4, ease: "easeInOut" }}
             className="max-w-lg mx-auto"
           >
             <Card className="shadow-xl">
@@ -275,9 +296,10 @@ export default function SinglePlayerPage() {
         {gameState === "playing" && currentLocation && (
           <motion.div
             key="playing"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            transition={{ duration: 0.4, ease: "easeInOut" }}
             className="h-[calc(100vh-8rem)]"
           >
             {/* Header */}
@@ -303,52 +325,93 @@ export default function SinglePlayerPage() {
               size="sm"
             />
 
-            {/* Main game area */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 h-[calc(100%-1rem)]">
-              {/* Location image */}
-              <Card className="overflow-hidden">
-                <CardBody className="p-0 h-full">
-                  <div className="relative w-full h-full min-h-[300px]">
-                    <img
-                      src={currentLocation.image_url}
-                      alt="Where is this?"
-                      className="w-full h-full object-cover"
-                      onError={(e) => {
-                        console.error("Image failed to load:", currentLocation.image_url);
-                        e.currentTarget.src = "https://via.placeholder.com/800x600?text=Image+Not+Found";
-                      }}
-                      onLoad={() => {
-                        console.log("Image loaded successfully:", currentLocation.image_url);
-                      }}
-                    />
-                    <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-4">
-                      <p className="text-white text-lg font-semibold">Where is this location?</p>
+            {/* Main game area - consistent height with result screen */}
+            <div className="relative h-[calc(100%-1rem)] overflow-hidden flex gap-4">
+              {/* Location image - starts fullscreen, then shrinks to left half */}
+              <motion.div
+                initial={{ opacity: 0, width: "100%" }}
+                animate={{ 
+                  opacity: 1,
+                  width: showMap ? "49%" : "100%",
+                }}
+                transition={{ 
+                  opacity: { duration: 0.5 },
+                  width: { duration: 0.8, ease: "easeInOut" },
+                }}
+                className="h-full z-10 flex-shrink-0"
+              >
+                <Card className="overflow-hidden h-full w-full">
+                  <CardBody className="p-0 h-full">
+                    <div className="relative w-full h-full min-h-[300px]">
+                      <img
+                        src={currentLocation.image_url}
+                        alt="Where is this?"
+                        className="w-full h-full object-cover"
+                        onError={(e) => {
+                          console.error("Image failed to load:", currentLocation.image_url);
+                          e.currentTarget.src = "https://via.placeholder.com/800x600?text=Image+Not+Found";
+                        }}
+                        onLoad={() => {
+                          console.log("Image loaded successfully:", currentLocation.image_url);
+                        }}
+                      />
+                      <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-4">
+                        <p className="text-white text-lg font-semibold">Where is this location?</p>
+                      </div>
+                      
+                      {/* Countdown timer overlay */}
+                      {!showMap && (
+                        <motion.div
+                          initial={{ opacity: 0 }}
+                          animate={{ opacity: 1 }}
+                          className="absolute top-4 right-4 bg-black/60 backdrop-blur-sm rounded-full px-4 py-2 flex items-center gap-2"
+                        >
+                          <span className="text-white text-sm">Map appears in</span>
+                          <motion.span
+                            key={mapCountdown}
+                            initial={{ scale: 1.5, opacity: 0 }}
+                            animate={{ scale: 1, opacity: 1 }}
+                            className="text-white font-bold text-xl min-w-[24px] text-center"
+                          >
+                            {mapCountdown}
+                          </motion.span>
+                        </motion.div>
+                      )}
                     </div>
-                  </div>
-                </CardBody>
-              </Card>
+                  </CardBody>
+                </Card>
+              </motion.div>
 
-              {/* Map for guessing */}
-              <div className="flex flex-col gap-3">
-                <div className="flex-1">
-                  <GuessMap onGuess={handleGuessSelect} disabled={loading} />
-                </div>
-                <Button
-                  color="primary"
-                  size="lg"
-                  className="font-semibold"
-                  onPress={submitCurrentGuess}
-                  isDisabled={!selectedGuess}
-                  isLoading={loading}
+              {/* Map for guessing - slides in from right */}
+              {showMap && (
+                <motion.div
+                  initial={{ opacity: 0, x: 50 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ duration: 0.5, ease: "easeOut" }}
+                  className="h-full w-1/2 flex-shrink-0"
                 >
-                  {selectedGuess ? "Submit Guess" : "Place your marker on the map"}
-                </Button>
-                {error && (
-                  <div className="p-2 bg-red-50 border border-red-200 rounded-lg text-red-600 text-sm">
-                    {error}
+                  <div className="flex flex-col h-full w-full overflow-hidden">
+                    <div className="flex-1 min-h-0 overflow-hidden">
+                      <GuessMap onGuess={handleGuessSelect} disabled={loading} />
+                    </div>
+                    <Button
+                      color="primary"
+                      size="lg"
+                      className="font-semibold flex-shrink-0"
+                      onPress={submitCurrentGuess}
+                      isDisabled={!selectedGuess}
+                      isLoading={loading}
+                    >
+                      {selectedGuess ? "Submit Guess" : "Place your marker on the map"}
+                    </Button>
+                    {error && (
+                      <div className="p-2 bg-red-50 border border-red-200 rounded-lg text-red-600 text-sm flex-shrink-0">
+                        {error}
+                      </div>
+                    )}
                   </div>
-                )}
-              </div>
+                </motion.div>
+              )}
             </div>
           </motion.div>
         )}
@@ -357,10 +420,11 @@ export default function SinglePlayerPage() {
         {gameState === "result" && guessResult && currentLocation && (
           <motion.div
             key="result"
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.95 }}
-            className="h-[calc(100vh-8rem)]"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            transition={{ duration: 0.4, ease: "easeInOut" }}
+            className="h-[calc(100vh-3rem)]"
           >
             {/* Header */}
             <div className="flex items-center justify-between mb-4">
@@ -372,64 +436,66 @@ export default function SinglePlayerPage() {
               </span>
             </div>
 
-            {/* Result content */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 h-[calc(100%-1rem)]">
-              {/* Score card */}
-              <Card className="bg-gradient-to-br from-slate-50 to-white">
-                <CardBody className="flex flex-col items-center justify-center gap-6 p-8">
-                  <motion.div
-                    initial={{ scale: 0 }}
-                    animate={{ scale: 1 }}
-                    transition={{ type: "spring", delay: 0.2 }}
-                    className="text-center"
-                  >
-                    <p className="text-slate-500 text-sm uppercase tracking-wide mb-2">
-                      You scored
-                    </p>
-                    <p className={`text-6xl font-bold ${getScoreColor(guessResult.points)}`}>
-                      {guessResult.points.toLocaleString()}
-                    </p>
-                    <p className="text-slate-400 text-sm mt-1">points</p>
-                  </motion.div>
+            {/* Result content - consistent height and gap with playing screen */}
+            <div className="flex gap-4 h-[calc(100%-4rem)]">
+              {/* Score card - matches left side width of playing screen */}
+              <div className="w-1/2 h-full">
+                <Card className="bg-gradient-to-br from-slate-50 to-white h-full">
+                  <CardBody className="flex flex-col items-center justify-center gap-6 p-8">
+                    <motion.div
+                      initial={{ scale: 0 }}
+                      animate={{ scale: 1 }}
+                      transition={{ type: "spring", delay: 0.2 }}
+                      className="text-center"
+                    >
+                      <p className="text-slate-500 text-sm uppercase tracking-wide mb-2">
+                        You scored
+                      </p>
+                      <p className={`text-6xl font-bold ${getScoreColor(guessResult.points)}`}>
+                        {guessResult.points.toLocaleString()}
+                      </p>
+                      <p className="text-slate-400 text-sm mt-1">points</p>
+                    </motion.div>
 
-                  <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.4 }}
-                    className="text-center"
-                  >
-                    <p className="text-slate-500 text-sm">Distance from actual location</p>
-                    <p className="text-2xl font-semibold text-slate-700">
-                      {formatDistance(guessResult.distance_meters)}
-                    </p>
-                  </motion.div>
+                    <motion.div
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.4 }}
+                      className="text-center"
+                    >
+                      <p className="text-slate-500 text-sm">Distance from actual location</p>
+                      <p className="text-2xl font-semibold text-slate-700">
+                        {formatDistance(guessResult.distance_meters)}
+                      </p>
+                    </motion.div>
 
-                  <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.5 }}
-                    className="w-full p-4 bg-emerald-50 rounded-xl border border-emerald-200"
-                  >
-                    <p className="text-emerald-600 text-sm mb-1">Actual Location</p>
-                    <p className="text-emerald-800 font-semibold text-lg">
-                      {guessResult.actual_location.name}
-                    </p>
-                  </motion.div>
+                    <motion.div
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.5 }}
+                      className="w-full p-4 bg-emerald-50 rounded-xl border border-emerald-200"
+                    >
+                      <p className="text-emerald-600 text-sm mb-1">Actual Location</p>
+                      <p className="text-emerald-800 font-semibold text-lg">
+                        {guessResult.actual_location.name}
+                      </p>
+                    </motion.div>
 
-                  <Button
-                    color="primary"
-                    size="lg"
-                    className="w-full font-semibold mt-4"
-                    onPress={nextRound}
-                    isLoading={loading}
-                  >
-                    {guessResult.game_complete ? "See Final Results" : "Next Round →"}
-                  </Button>
-                </CardBody>
-              </Card>
+                    <Button
+                      color="primary"
+                      size="lg"
+                      className="w-full font-semibold mt-4"
+                      onPress={nextRound}
+                      isLoading={loading}
+                    >
+                      {guessResult.game_complete ? "See Final Results" : "Next Round →"}
+                    </Button>
+                  </CardBody>
+                </Card>
+              </div>
 
-              {/* Map showing result */}
-              <div>
+              {/* Map showing result - matches right side width of playing screen */}
+              <div className="w-1/2 h-full">
                 <GuessMap
                   onGuess={() => {}}
                   disabled
@@ -458,6 +524,7 @@ export default function SinglePlayerPage() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
+            transition={{ duration: 0.4, ease: "easeInOut" }}
             className="max-w-2xl mx-auto"
           >
             <Card className="shadow-xl overflow-hidden">
