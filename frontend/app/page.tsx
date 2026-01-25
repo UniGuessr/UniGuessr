@@ -7,8 +7,8 @@ import BackgroundMap from "@/components/background";
 export default function Home() {
   return (
     <main className="relative overflow-hidden">
-      {/* Background map */}
-      <BackgroundMap />
+      {/* Background map
+      <BackgroundMap /> */}
 
       {/* Subtle gradient overlay */}
       <div className="pointer-events-none fixed inset-0 z-[1] bg-gradient-to-t from-black/80 via-black/50 to-black/30" />
