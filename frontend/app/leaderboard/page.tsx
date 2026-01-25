@@ -67,13 +67,10 @@ export default function LeaderboardPage() {
           <div className="bg-indigo-600 p-1.5 rounded-lg">
             <Trophy className="text-white w-5 h-5" />
           </div>
-          <span className="font-bold tracking-tight text-xl hidden sm:block">Leaderboard</span>
+          <span className="font-bold font-mono uppercase tracking-wider text-lg hidden sm:block">Leaderboard</span>
         </div>
         <div className="flex gap-2">
-          <PixelButton href="/upload" variant="secondary" size="sm">
-            <Upload size={18} className="mr-1" /> Upload
-          </PixelButton>
-          <PixelButton href="/" variant="secondary" size="sm">
+          <PixelButton href="/" variant="orange" size="sm">
             <Home size={18} className="mr-1" /> Home
           </PixelButton>
         </div>
@@ -124,13 +121,13 @@ export default function LeaderboardPage() {
           {loading ? (
             <div className="flex flex-col items-center justify-center py-20 gap-4">
               <Spinner color="primary" />
-              <p className="text-slate-400 text-sm animate-pulse">Updating rankings...</p>
+              <p className="text-slate-400 text-xs font-mono uppercase tracking-wider animate-pulse">Updating rankings...</p>
             </div>
           ) : error ? (
-            <div className="text-center py-12 bg-red-50 rounded-2xl border border-red-100 text-red-600 italic">{error}</div>
+            <div className="text-center py-12 bg-red-50 rounded-2xl border border-red-100 text-red-600 text-xs font-mono uppercase tracking-wider">{error}</div>
           ) : entries.length === 0 ? (
             <div className="text-center py-20 bg-white rounded-3xl border-2 border-dashed border-slate-200">
-              <p className="text-slate-400">No scores found for these filters.</p>
+              <p className="text-slate-400 text-xs font-mono uppercase tracking-wider">No scores found for these filters.</p>
             </div>
           ) : (
             <motion.div 
@@ -160,26 +157,26 @@ export default function LeaderboardPage() {
                     >
                       {/* Rank Badge */}
                       <div className="col-span-1">
-                        <div className={`w-8 h-8 rounded-lg border flex items-center justify-center font-bold text-sm ${getRankStyle(rank)}`}>
+                        <div className={`w-8 h-8 rounded-lg border flex items-center justify-center font-bold text-sm font-mono ${getRankStyle(rank)}`}>
                           {rank}
                         </div>
                       </div>
 
                       {/* User Info */}
                       <div className="col-span-6 sm:col-span-7 pl-2">
-                        <div className="font-bold text-slate-700 group-hover:text-indigo-600 transition-colors">
+                        <div className="font-bold text-slate-700 group-hover:text-indigo-600 transition-colors font-mono uppercase tracking-wider text-sm">
                           {entry.username}
                         </div>
-                        <div className="flex items-center gap-2 text-[10px] text-slate-400 font-medium">
-                          <span className="bg-slate-100 px-1.5 py-0.5 rounded uppercase tracking-tighter">{entry.difficulty}</span>
+                        <div className="flex items-center gap-2 text-[10px] text-slate-400 font-mono uppercase tracking-wider">
+                          <span className="bg-slate-100 px-1.5 py-0.5 rounded">{entry.difficulty}</span>
                           <span>•</span>
-                          <span>{entry.rounds} ROUNDS</span>
+                          <span>{entry.rounds} Rounds</span>
                         </div>
                       </div>
 
                       {/* Score */}
                       <div className="col-span-3 sm:col-span-2 text-right">
-                        <span className="font-black text-lg text-slate-800 tabular-nums">
+                        <span className="font-black text-lg text-slate-800 tabular-nums font-mono">
                           {entry.score.toLocaleString()}
                         </span>
                       </div>
@@ -187,7 +184,7 @@ export default function LeaderboardPage() {
                       {/* Date */}
                       <div className="col-span-2 text-right hidden sm:flex items-center justify-end gap-1.5 text-slate-400">
                         <Calendar size={12} />
-                        <span className="text-xs">
+                        <span className="text-xs font-mono uppercase tracking-wider">
                           {new Date(entry.created_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
                         </span>
                       </div>

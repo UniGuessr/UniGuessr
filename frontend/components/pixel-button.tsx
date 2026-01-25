@@ -5,7 +5,7 @@ import * as React from "react"
 import Link from "next/link"
 
 interface PixelButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
-  variant?: "primary" | "secondary" | "danger" | "success"
+  variant?: "primary" | "secondary" | "danger" | "success" | "orange"
   size?: "sm" | "md" | "lg"
   href?: string
   isLoading?: boolean
@@ -38,6 +38,13 @@ const variantStyles = {
     light: "bg-green-300",
     dark: "bg-green-700",
     shadow: "bg-green-900",
+    text: "text-white",
+  },
+  orange: {
+    main: "bg-orange-500",
+    light: "bg-orange-300",
+    dark: "bg-orange-600",
+    shadow: "bg-orange-800",
     text: "text-white",
   },
 }

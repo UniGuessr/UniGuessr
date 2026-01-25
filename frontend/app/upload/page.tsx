@@ -11,7 +11,7 @@ import { uploadLocation } from "@/lib/api";
 import LocationPickerMap from "@/components/location-picker-map";
 import FloorSelector from "@/components/floor-selector";
 import { PixelButton } from "@/components/pixel-button";
-import { findNearbyBuilding, type Building } from "@/config/buildings";
+import { findNearbyBuilding, BUILDINGS_WITH_FLOORS, getBuildingById } from "@/config/buildings";
 import { ArrowLeft, Upload, Trash2, CheckCircle2, MapPin } from "lucide-react"; // Optional: recommended for a sleek look
 
 const DIFFICULTY_OPTIONS = [
@@ -144,6 +144,8 @@ export default function UploadLocationPage() {
                     </PixelButton>
                   </Link>
                 </div>
+                <h2 className="text-2xl font-bold font-mono uppercase tracking-wider">Location Uploaded!</h2>
+                <p className="text-slate-500 text-xs font-mono uppercase tracking-wider">Your contribution is now live in the pool.</p>
               </div>
             </motion.div>
           ) : (
@@ -152,6 +154,8 @@ export default function UploadLocationPage() {
                 <div>
                   <h1 className="text-2xl font-bold tracking-tight">Add New Location</h1>
                   <p className="text-slate-500 text-sm mt-1">Help others explore Concordia's campus.</p>
+                  <h1 className="text-xl font-bold font-mono uppercase tracking-wider">Add New Location</h1>
+                  <p className="text-orange-500 text-xs font-mono uppercase tracking-wider mt-1">Help others explore Concordia’s campus.</p>
                 </div>
                 <Link href="/">
                   <PixelButton variant="secondary" size="sm" className="flex items-center gap-2">
@@ -187,8 +191,79 @@ export default function UploadLocationPage() {
                     ))}
                   </Select>
 
+                  {/* Building selection */}
+                  {nearbyBuilding && (
+                    <motion.div
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: "auto" }}
+                      className="p-4 bg-purple-50 rounded-xl border-2 border-purple-200 space-y-3"
+                    >
+                      <div className="flex items-start gap-2">
+                        <div className="text-2xl">🏢</div>
+                        <div className="flex-1">
+                          <p className="font-semibold text-purple-900 text-xs font-mono uppercase tracking-wider">
+                            {nearbyBuilding.name} Detected!
+                          </p>
+                          <p className="text-xs text-purple-700 mt-0.5 font-mono uppercase tracking-wider">
+                            Floor bonus available
+                          </p>
+                        </div>
+                      </div>
+
+                      <Select
+                        label="Building (Optional)"
+                        variant="bordered"
+                        placeholder="Select a building"
+                        selectedKeys={buildingId ? [buildingId] : []}
+                        onChange={(e) => {
+                          setBuildingId(e.target.value || null);
+                          setFloor(null);
+                        }}
+                        classNames={{ trigger: "bg-white" }}
+                      >
+                        {BUILDINGS_WITH_FLOORS.map((building) => (
+                          <SelectItem key={building.id}>{building.name}</SelectItem>
+                        ))}
+                      </Select>
+
+                      {buildingId && (
+                        <motion.div
+                          initial={{ opacity: 0, y: -10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                        >
+                          <label className="text-xs font-mono uppercase tracking-wider text-purple-900 mb-2 block">
+                            Floor Number (Optional)
+                          </label>
+                          <div className="grid grid-cols-5 gap-2">
+                            {getBuildingById(buildingId)?.floors.map((floorNum) => (
+                              <button
+                                key={floorNum}
+                                type="button"
+                                onClick={() => setFloor(floorNum === floor ? null : floorNum)}
+                                className={`
+                                  aspect-square rounded-lg font-bold text-sm transition-all
+                                  ${
+                                    floor === floorNum
+                                      ? "bg-purple-600 text-white shadow-lg scale-105"
+                                      : "bg-white text-slate-700 hover:bg-purple-100 border border-purple-200"
+                                  }
+                                `}
+                              >
+                                {floorNum}
+                              </button>
+                            ))}
+                          </div>
+                          <p className="text-xs text-purple-600 mt-2 font-mono uppercase tracking-wider">
+                            Correct floor = +20% bonus
+                          </p>
+                        </motion.div>
+                      )}
+                    </motion.div>
+                  )}
+
                   <div className="space-y-2">
                     <div className="text-sm font-medium px-1">Location Image</div>
+                    <label className="text-xs text-orange-500 font-mono uppercase tracking-wider px-1">Location Image</label>
                     {imagePreview ? (
                       <div className="group relative rounded-xl overflow-hidden border-2 border-slate-100 shadow-sm">
                         <img src={imagePreview} alt="Preview" className="w-full h-[300px] object-cover transition-transform group-hover:scale-105" />
@@ -219,6 +294,10 @@ export default function UploadLocationPage() {
                         <Upload className="text-slate-400 group-hover:text-indigo-500 mb-2 transition-colors pointer-events-none" size={32} />
                         <span className="text-sm text-slate-500 font-medium pointer-events-none">Click to upload photo</span>
                         <span className="text-xs text-slate-400 mt-1 pointer-events-none">PNG, JPG, WEBP up to 10MB</span>
+                      <label className="flex flex-col items-center justify-center w-full h-[445px] border-2 border-dashed border-slate-200 rounded-xl cursor-pointer hover:bg-slate-50 hover:border-indigo-300 transition-all group">
+                        <Upload className="text-slate-400 group-hover:text-indigo-500 mb-2 transition-colors" />
+                        <span className="text-xs text-slate-500 font-mono uppercase tracking-wider">Click to upload photo</span>
+                        <input type="file" className="hidden" accept="image/*" onChange={handleImageChange} />
                       </label>
                     )}
                   </div>
