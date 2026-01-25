@@ -271,6 +271,13 @@ export default function SinglePlayerPage() {
                       src={currentLocation.image_url}
                       alt="Where is this?"
                       className="w-full h-full object-cover"
+                      onError={(e) => {
+                        console.error("Image failed to load:", currentLocation.image_url);
+                        e.currentTarget.src = "https://via.placeholder.com/800x600?text=Image+Not+Found";
+                      }}
+                      onLoad={() => {
+                        console.log("Image loaded successfully:", currentLocation.image_url);
+                      }}
                     />
                     <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-4">
                       <p className="text-white text-lg font-semibold">Where is this location?</p>

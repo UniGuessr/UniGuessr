@@ -33,7 +33,6 @@ export interface CurrentLocation {
   location_id: string;
   image_url: string;
   name: string;
-  description: string | null;
   round: number;
   total_rounds: number;
 }
