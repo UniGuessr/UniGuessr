@@ -1,17 +1,17 @@
 "use client";
 
 import { Link } from "@heroui/link";
-import { Button } from "@heroui/button";
+import { PixelButton } from "@/components/pixel-button";
+import { SplitFlapText, SplitFlapMuteToggle, SplitFlapAudioProvider } from "@/components/split-text"
+
 // import BackgroundMap from "@/components/background";
 
 export default function Home() {
   return (
     <main className="relative overflow-hidden">
-      {/* Background map
-      <BackgroundMap /> */}
 
       {/* Subtle gradient overlay */}
-      <div className="pointer-events-none fixed inset-0 z-[1] bg-gradient-to-t from-black/80 via-black/50 to-black/30" />
+      <div />
 
       {/* Foreground UI */}
       <div className="relative z-[2] flex flex-col items-center justify-center px-6">
@@ -19,9 +19,21 @@ export default function Home() {
         <div className="flex flex-col items-center gap-10 text-center mt-50">
           {/* Title */}
           <div className="space-y-3">
-            <h1 className="text-5xl font-semibold tracking-tight text-white sm:text-6xl md:text-7xl">
-              ConU<span className="text-emerald-400">Guessr</span>
-            </h1>
+            <SplitFlapAudioProvider>
+              <div className="relative">
+                <SplitFlapText 
+                  text="ConUGuessr" 
+                  speed={80} 
+                  fontSize="8rem"
+                  transparent
+                  highlightFrom={4}
+                  highlightColor="#6b7280"
+                />
+                <div className="mt-2">
+                  <SplitFlapMuteToggle />
+                </div>
+              </div>
+            </SplitFlapAudioProvider>
             <p className="text-base text-white/60 sm:text-lg">
               Guess locations across Concordia University
             </p>
@@ -29,25 +41,21 @@ export default function Home() {
 
           {/* Game Mode Selection */}
           <div className="flex flex-col gap-3 sm:flex-row sm:gap-4">
-            <Button
-              as={Link}
+            <PixelButton
               href="/single-player"
               size="lg"
-              radius="md"
-              variant="bordered"
+              variant="secondary"
             >
               Single Player
-            </Button>
+            </PixelButton>
 
-            <Button
-              as={Link}
+            <PixelButton
               href="/multi-player"
               size="lg"
-              radius="md"
-              variant="bordered"
+              variant="secondary"
             >
               Multiplayer
-            </Button>
+            </PixelButton>
           </div>
 
           {/* Minimal stats */}

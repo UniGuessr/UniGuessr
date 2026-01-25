@@ -1,13 +1,13 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Button } from "@heroui/button";
 import { Card, CardBody } from "@heroui/card";
 import { Select, SelectItem } from "@heroui/select";
 import { Spinner } from "@heroui/spinner";
 import { Link } from "@heroui/link";
 import { motion, AnimatePresence } from "framer-motion";
 import { getLeaderboard, type LeaderboardEntry } from "@/lib/api";
+import { PixelButton } from "@/components/pixel-button";
 import { Trophy, Home, Upload, RefreshCw, Calendar, Layers } from "lucide-react";
 
 const ROUND_OPTIONS = [
@@ -70,8 +70,12 @@ export default function LeaderboardPage() {
           <span className="font-bold tracking-tight text-xl hidden sm:block">Leaderboard</span>
         </div>
         <div className="flex gap-2">
-          <Button as={Link} href="/upload" variant="light" size="sm" startContent={<Upload size={18}/>}>Upload</Button>
-          <Button as={Link} href="/" variant="flat" color="primary" size="sm" startContent={<Home size={18}/>}>Home</Button>
+          <PixelButton href="/upload" variant="secondary" size="sm">
+            <Upload size={18} className="mr-1" /> Upload
+          </PixelButton>
+          <PixelButton href="/" variant="secondary" size="sm">
+            <Home size={18} className="mr-1" /> Home
+          </PixelButton>
         </div>
       </nav>
 
@@ -102,16 +106,15 @@ export default function LeaderboardPage() {
               >
                 {DIFFICULTY_OPTIONS.map((opt) => <SelectItem key={opt.key}>{opt.label}</SelectItem>)}
               </Select>
-              <Button 
-                isIconOnly 
-                variant="flat" 
+              <PixelButton 
+                variant="secondary" 
                 size="sm" 
-                onPress={fetchLeaderboard} 
+                onClick={fetchLeaderboard} 
                 isLoading={loading}
                 className="mt-auto"
               >
                 <RefreshCw size={16} />
-              </Button>
+              </PixelButton>
             </div>
           </div>
         </header>

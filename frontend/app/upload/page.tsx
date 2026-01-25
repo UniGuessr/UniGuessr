@@ -9,6 +9,7 @@ import { Link } from "@heroui/link";
 import { motion, AnimatePresence } from "framer-motion";
 import { uploadLocation } from "@/lib/api";
 import LocationPickerMap from "@/components/location-picker-map";
+import { PixelButton } from "@/components/pixel-button";
 import { ArrowLeft, Upload, Trash2, CheckCircle2, MapPin } from "lucide-react"; // Optional: recommended for a sleek look
 
 const DIFFICULTY_OPTIONS = [
@@ -117,7 +118,7 @@ export default function UploadLocationPage() {
                     placeholder="e.g. Hall Building Mezzanine"
                     value={name}
                     onChange={(e) => setName(e.target.value)}
-                    classNames={{ label: "font-medium", inputWrapper: "bg-white" }}
+                    classNames={{ label: "font-medium"}}
                   />
 
                   <Select
@@ -125,7 +126,6 @@ export default function UploadLocationPage() {
                     variant="bordered"
                     selectedKeys={[difficulty]}
                     onChange={(e) => setDifficulty(e.target.value)}
-                    classNames={{ trigger: "bg-white" }}
                   >
                     {DIFFICULTY_OPTIONS.map((opt) => (
                       <SelectItem key={opt.key}>{opt.label}</SelectItem>
@@ -159,16 +159,15 @@ export default function UploadLocationPage() {
                   )}
 
                   <div className="flex gap-3">
-                    <Button 
+                    <PixelButton 
                       type="submit" 
-                      color="primary" 
                       size="lg" 
                       className="flex-1 h-[40px]"
                       isLoading={loading}
-                      variant="ghost"
+                      variant="secondary"
                     >
                       Publish Location
-                    </Button>
+                    </PixelButton>
                   </div>
                 </form>
               </div>

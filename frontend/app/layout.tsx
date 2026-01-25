@@ -2,6 +2,7 @@ import "@/styles/globals.css";
 import { Metadata, Viewport } from "next";
 import { Link } from "@heroui/link";
 import clsx from "clsx";
+import { StarField } from "@/components/star-field";
 
 import { Providers } from "./providers";
 
@@ -38,9 +39,10 @@ export default function RootLayout({
           fontSans.variable,
         )}
       >
-        <Providers themeProps={{ attribute: "class", forcedTheme: "light" }}>
+        <Providers themeProps={{ attribute: "class", forcedTheme: "dark" }}>
           <div className="">
             {/* <Navbar /> */}
+            <StarField/> 
             <main className="mx-auto pt-6 px-6 flex-grow">
               {children}
             </main>

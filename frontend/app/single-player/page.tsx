@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useCallback, useEffect } from "react";
-import { Button } from "@heroui/button";
 import { Card, CardBody, CardHeader, CardFooter } from "@heroui/card";
 import { Select, SelectItem } from "@heroui/select";
 import { Spinner } from "@heroui/spinner";
@@ -11,6 +10,7 @@ import { Modal, ModalContent, ModalHeader, ModalBody, ModalFooter } from "@herou
 import { Input } from "@heroui/input";
 import { motion, AnimatePresence } from "framer-motion";
 import GuessMap from "@/components/guess-map";
+import { PixelButton } from "@/components/pixel-button";
 import {
   createSession,
   getCurrentLocation,
@@ -288,15 +288,15 @@ export default function SinglePlayerPage() {
                 )}
 
                 <div className="space-y-4">
-                  <Button
-                    color="primary"
+                  <PixelButton
                     size="lg"
-                    className="w-full font-bold h-14 text-md shadow-lg shadow-indigo-200 bg-indigo-600"
-                    onPress={startGame}
+                    className="w-full h-14"
+                    onClick={startGame}
                     isLoading={loading}
+                    variant="secondary"
                   >
                     Launch Expedition
-                  </Button>
+                  </PixelButton>
                   
                   <Link 
                     href="/" 
@@ -333,9 +333,9 @@ export default function SinglePlayerPage() {
                   Score: {roundScores.reduce((a, b) => a + b, 0).toLocaleString()}
                 </span>
               </div>
-              <Button variant="light" color="danger" size="sm" onPress={resetGame}>
+              <PixelButton variant="danger" size="sm" onClick={resetGame}>
                 Quit Game
-              </Button>
+              </PixelButton>
             </div>
 
             {/* Progress bar */}
@@ -362,12 +362,12 @@ export default function SinglePlayerPage() {
                 className="h-full z-10 flex-shrink-0"
               >
                 <Card className="overflow-hidden h-full w-full">
-                  <CardBody className="p-0 h-full">
-                    <div className="relative w-full h-full min-h-[300px]">
+                  <CardBody className="p-0 h-full flex items-center justify-center bg-black">
+                    <div className="relative w-full h-full flex items-center justify-center">
                       <img
                         src={currentLocation.image_url}
                         alt="Where is this?"
-                        className="w-full h-full object-cover"
+                        className="max-w-full max-h-full object-contain"
                         onError={(e) => {
                           console.error("Image failed to load:", currentLocation.image_url);
                           e.currentTarget.src = "https://via.placeholder.com/800x600?text=Image+Not+Found";
@@ -415,16 +415,16 @@ export default function SinglePlayerPage() {
                     <div className="flex-1 min-h-0 overflow-hidden">
                       <GuessMap onGuess={handleGuessSelect} disabled={loading} />
                     </div>
-                    <Button
-                      color="primary"
+                    <PixelButton
                       size="lg"
-                      className="font-semibold flex-shrink-0"
-                      onPress={submitCurrentGuess}
-                      isDisabled={!selectedGuess}
+                      className="flex-shrink-0 w-full"
+                      onClick={submitCurrentGuess}
+                      disabled={!selectedGuess}
                       isLoading={loading}
+                      variant="secondary"
                     >
                       {selectedGuess ? "Submit Guess" : "Place your marker on the map"}
-                    </Button>
+                    </PixelButton>
                     {error && (
                       <div className="p-2 bg-red-50 border border-red-200 rounded-lg text-red-600 text-sm flex-shrink-0">
                         {error}
@@ -502,15 +502,15 @@ export default function SinglePlayerPage() {
                       </p>
                     </motion.div>
 
-                    <Button
-                      color="primary"
+                    <PixelButton
                       size="lg"
-                      className="w-full font-semibold mt-4"
-                      onPress={nextRound}
+                      className="w-full mt-4"
+                      onClick={nextRound}
                       isLoading={loading}
+                      variant="secondary"
                     >
                       {guessResult.game_complete ? "See Final Results" : "Next Round →"}
-                    </Button>
+                    </PixelButton>
                   </CardBody>
                 </Card>
               </div>
@@ -625,14 +625,14 @@ export default function SinglePlayerPage() {
 
               <CardFooter className="flex flex-col gap-3 p-6 pt-0">
                 {!scoreSaved && (
-                  <Button
-                    color="success"
+                  <PixelButton
                     size="lg"
-                    className="w-full font-semibold"
-                    onPress={() => setShowLeaderboardModal(true)}
+                    className="w-full"
+                    onClick={() => setShowLeaderboardModal(true)}
+                    variant="success"
                   >
                     Save to Leaderboard
-                  </Button>
+                  </PixelButton>
                 )}
                 {scoreSaved && (
                   <div className="w-full p-3 bg-emerald-50 rounded-lg text-center">
@@ -641,34 +641,31 @@ export default function SinglePlayerPage() {
                 )}
                 <div className="flex flex-col gap-2 w-full">
                   <div className="flex gap-3 w-full">
-                    <Button
-                      color="primary"
+                    <PixelButton
                       size="lg"
-                      className="flex-1 font-semibold"
-                      onPress={resetGame}
+                      className="flex-1"
+                      onClick={resetGame}
+                      variant="secondary"
                     >
                       Play Again
-                    </Button>
-                    <Button
-                      as={Link}
+                    </PixelButton>
+                    <PixelButton
                       href="/leaderboard"
-                      variant="bordered"
                       size="lg"
-                      className="flex-1 font-semibold"
-                      startContent={<span>🏆</span>}
+                      className="flex-1"
+                      variant="secondary"
                     >
-                      Leaderboard
-                    </Button>
+                      🏆 Leaderboard
+                    </PixelButton>
                   </div>
-                  <Button
-                    as={Link}
+                  <PixelButton
                     href="/"
-                    variant="light"
-                    size="md"
+                    size="sm"
                     className="w-full"
+                    variant="secondary"
                   >
                     Back to Home
-                  </Button>
+                  </PixelButton>
                 </div>
               </CardFooter>
             </Card>
@@ -732,23 +729,25 @@ export default function SinglePlayerPage() {
           </ModalBody>
           <ModalFooter>
             {!scoreSaved && (
-              <>
-                <Button 
-                  variant="light" 
-                  onPress={handleCloseModal}
-                  isDisabled={isSavingScore}
+              <div className="flex gap-2 w-full">
+                <PixelButton 
+                  variant="secondary" 
+                  onClick={handleCloseModal}
+                  disabled={isSavingScore}
+                  size="sm"
                 >
                   Cancel
-                </Button>
-                <Button 
-                  color="primary" 
-                  onPress={handleSaveScore}
+                </PixelButton>
+                <PixelButton 
+                  variant="secondary" 
+                  onClick={handleSaveScore}
                   isLoading={isSavingScore}
-                  isDisabled={!username.trim() || isSavingScore}
+                  disabled={!username.trim() || isSavingScore}
+                  size="sm"
                 >
                   Save Score
-                </Button>
-              </>
+                </PixelButton>
+              </div>
             )}
           </ModalFooter>
         </ModalContent>
