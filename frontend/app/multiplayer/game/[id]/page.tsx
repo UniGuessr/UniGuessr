@@ -167,7 +167,7 @@ export default function MultiplayerGamePage({ params }: { params: Promise<{ id: 
           const allSubmitted = gameData.players.every(
             (p: any) => !p.disconnected && p.guesses.length > gameData.current_round
           );
-          if (allSubmitted && gameState !== "results") {
+          if (allSubmitted) {
             console.log("All players submitted - transitioning to results");
             setGameState("results");
           }
