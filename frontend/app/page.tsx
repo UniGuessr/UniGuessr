@@ -56,7 +56,11 @@ export default function Home() {
             <PixelButton href="/single-player" size="lg" variant="secondary">
               Single Player
             </PixelButton>
-            <PixelButton href="/multi-player" size="lg" variant="secondary">
+            <PixelButton
+              href="/multiplayer"
+              size="lg"
+              variant="secondary"
+            >
               Multiplayer
             </PixelButton>
           </div>

@@ -9,6 +9,8 @@ interface PixelButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement>
   size?: "sm" | "md" | "lg"
   href?: string
   isLoading?: boolean
+  onPress?: () => void
+  isDisabled?: boolean
 }
 
 const variantStyles = {
@@ -63,10 +65,23 @@ export function PixelButton({
   disabled,
   href,
   isLoading,
+  onPress,
+  onClick,
+  isDisabled: isDisabledProp,
   ...props
 }: PixelButtonProps) {
   const colors = variantStyles[variant]
-  const isDisabled = disabled || isLoading
+  const isDisabled = disabled || isLoading || isDisabledProp
+
+  const handleClick = (e: React.MouseEvent<HTMLButtonElement>) => {
+    if (isDisabled) return
+    if (onPress) {
+      onPress()
+    }
+    if (onClick) {
+      onClick(e)
+    }
+  }
 
   const buttonStyle = {
     imageRendering: "pixelated" as const,
@@ -124,6 +139,7 @@ export function PixelButton({
       className={buttonClasses}
       disabled={isDisabled}
       style={buttonStyle}
+      onClick={handleClick}
       {...props}
     >
       {content}

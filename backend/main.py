@@ -4,7 +4,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 
 from src.database import Database
-from src.routes import locations_router, sessions_router, leaderboard_router
+from src.routes import locations_router, sessions_router, leaderboard_router, multiplayer_router
+from src.routes.websocket import socket_app
 from src.config import settings
 
 
@@ -39,6 +40,10 @@ app.add_middleware(
 app.include_router(locations_router)
 app.include_router(sessions_router)
 app.include_router(leaderboard_router)
+app.include_router(multiplayer_router)
+
+# Mount WebSocket app
+app.mount("/socket.io", socket_app)
 
 
 @app.get("/")
