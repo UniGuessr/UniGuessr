@@ -4,7 +4,6 @@ import { useState, useEffect } from "react";
 import { Link } from "@heroui/link";
 import { motion, AnimatePresence } from "framer-motion";
 import { getLeaderboard, type LeaderboardEntry } from "@/lib/api";
-import { PixelButton } from "@/components/pixel-button";
 import { Trophy, RefreshCw, Calendar, Loader2 } from "lucide-react";
 
 const ROUND_OPTIONS = [

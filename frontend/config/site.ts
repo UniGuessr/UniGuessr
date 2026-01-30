@@ -2,28 +2,33 @@ export type SiteConfig = typeof siteConfig;
 
 export const siteConfig = {
   name: "ConUGuessr",
-  description: "Make beautiful websites regardless of your design experience.",
+  description: "How well do you know your campus?",
   navItems: [
     {
       label: "Home",
       href: "/",
     },
     {
-      label: "Docs",
-      href: "/docs",
+      label: "Single Player",
+      href: "/single-player",
     },
     {
-      label: "Pricing",
-      href: "/pricing",
+      label: "multiplayer",
+      href: "/multiplayer",
     },
     {
-      label: "Blog",
-      href: "/blog",
+      label: "Leaderboard",
+      href: "/leaderboard",
     },
     {
-      label: "About",
-      href: "/about",
+      label: "Upload Image",
+      href: "/upload",
     },
+    {
+        label: "Admin",
+        href: "/admin",
+        
+    }
   ],
   navMenuItems: [
     {

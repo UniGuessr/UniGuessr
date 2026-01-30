@@ -9,10 +9,10 @@ import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import { uploadLocation } from "@/lib/api";
 import LocationPickerMap from "@/components/location-picker-map";
-import FloorSelector from "@/components/floor-selector";
-import { PixelButton } from "@/components/pixel-button";
+import FloorSelector from "@/components/Floor Selection/floor-selector";
+import { PixelButton } from "@/components/Button/pixel-button";
 import { findNearbyBuilding, BUILDINGS_WITH_FLOORS, getBuildingById, type Building} from "@/config/buildings";
-import { ArrowLeft, Upload, Trash2, CheckCircle2, MapPin } from "lucide-react"; // Optional: recommended for a sleek look
+import { ArrowLeft, Upload, Trash2, CheckCircle2, MapPin } from "lucide-react"; 
 
 const DIFFICULTY_OPTIONS = [
   { key: "easy", label: "Easy" },

@@ -1,12 +1,12 @@
 "use client";
 
 import { Link } from "@heroui/link";
-import { PixelButton } from "@/components/pixel-button";
+import { PixelButton } from "@/components/Button/pixel-button";
 import {
   SplitFlapText,
   SplitFlapMuteToggle,
   SplitFlapAudioProvider,
-} from "@/components/split-text";
+} from "@/components/Title/split-text";
 
 export default function Home() {
   return (

@@ -1,14 +1,10 @@
 import "@/styles/globals.css";
 import { Metadata, Viewport } from "next";
-import { Link } from "@heroui/link";
 import clsx from "clsx";
-import { StarField } from "@/components/star-field";
-
+import { StarField } from "@/components/Background/background";
 import { Providers } from "./providers";
-
 import { siteConfig } from "@/config/site";
 import { fontSans } from "@/config/fonts";
-import { Navbar } from "@/components/navbar";
 
 export const metadata: Metadata = {
   title: {
@@ -34,18 +30,12 @@ export default function RootLayout({
     <html suppressHydrationWarning lang="en">
       <head />
       <body
-        className={clsx(
-          "min-h-screen text-foreground bg-background font-sans antialiased",
-          fontSans.variable,
-        )}
+        className={clsx("min-h-screen text-foreground bg-background font-sans antialiased",fontSans.variable)}
       >
         <Providers themeProps={{ attribute: "class", forcedTheme: "dark" }}>
-          <div className="">
-            {/* <Navbar /> */}
+          <div>
             <StarField/> 
-            <main className="mx-auto pt-6 px-6 flex-grow">
-              {children}
-            </main>
+            <main className="mx-auto pt-6 px-6 flex-grow">{children}</main>
           </div>
         </Providers>
       </body>

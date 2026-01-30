@@ -12,7 +12,7 @@ class Settings(BaseSettings):
     
     # MongoDB Configuration
     mongodb_url: str
-    mongodb_db_name: str = "test"
+    mongodb_db_name: str = ""
     
     # API Configuration
     api_host: str = "0.0.0.0"
@@ -22,9 +22,9 @@ class Settings(BaseSettings):
     # AWS S3 Configuration
     aws_access_key_id: str = ""
     aws_secret_access_key: str = ""
-    aws_region: str = "us-east-2"
-    s3_bucket_name: str = "conuguessr"
-    s3_base_url: str = "https://conuguessr.s3.us-east-2.amazonaws.com"
+    aws_region: str = ""
+    s3_bucket_name: str = ""
+    s3_base_url: str = ""
     
     model_config = SettingsConfigDict(
         env_file=str(ENV_FILE),
@@ -32,6 +32,5 @@ class Settings(BaseSettings):
         case_sensitive=False,
         extra="ignore"
     )
-
 
 settings = Settings()

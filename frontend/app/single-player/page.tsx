@@ -2,15 +2,13 @@
 
 import { useState, useCallback, useEffect, useRef } from "react";
 import { Card, CardBody, CardHeader, CardFooter } from "@heroui/card";
-import { Select, SelectItem } from "@heroui/select";
-import { Spinner } from "@heroui/spinner";
 import { Link } from "@heroui/link";
 import { Modal, ModalContent, ModalHeader, ModalBody, ModalFooter } from "@heroui/modal";
 import { Input } from "@heroui/input";
 import { motion, AnimatePresence } from "framer-motion";
 import GuessMap from "@/components/guess-map";
-import { PixelButton } from "@/components/pixel-button";
-import FloorSelector from "@/components/floor-selector";
+import { PixelButton } from "@/components/Button/pixel-button";
+import FloorSelector from "@/components/Floor Selection/floor-selector";
 import { findNearbyBuilding, type Building } from "@/config/buildings";
 import {
   createSession,
