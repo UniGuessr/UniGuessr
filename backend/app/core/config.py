@@ -1,13 +1,15 @@
+"""application settings loaded from app/config/.env.{env} and .secrets.{env}."""
+
 import os
-from pathlib import Path
 
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-BACKEND_DIR = Path(__file__).resolve().parent.parent.parent
+from app import CONFIG_PATH
+
 APP_ENV = os.getenv("APP_ENV", "development")
-ENV_FILE = BACKEND_DIR / f".env.{APP_ENV}"
-SECRETS_FILE = BACKEND_DIR / f".secrets.{APP_ENV}"
+ENV_FILE = CONFIG_PATH / f".env.{APP_ENV}"
+SECRETS_FILE = CONFIG_PATH / f".secrets.{APP_ENV}"
 
 
 class Settings(BaseSettings):

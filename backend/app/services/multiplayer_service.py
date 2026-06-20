@@ -1,3 +1,5 @@
+"""multiplayer service: lobby lifecycle, matchmaking, and scoring."""
+
 import secrets
 import uuid
 from datetime import datetime, timezone

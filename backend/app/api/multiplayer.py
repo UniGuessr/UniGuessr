@@ -1,3 +1,5 @@
+"""multiplayer api: lobby creation, matchmaking, and game management."""
+
 from typing import Optional
 
 from fastapi import APIRouter, Body, Depends, HTTPException, Query

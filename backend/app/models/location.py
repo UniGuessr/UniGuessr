@@ -1,3 +1,5 @@
+"""locations table: campus photo locations with coordinates and floor info."""
+
 import uuid
 from datetime import datetime, timezone
 

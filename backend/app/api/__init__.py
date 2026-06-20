@@ -1,3 +1,5 @@
+"""api routers package: exports all fastapi routers."""
+
 from app.api.leaderboard import router as leaderboard_router
 from app.api.locations import router as locations_router
 from app.api.multiplayer import router as multiplayer_router

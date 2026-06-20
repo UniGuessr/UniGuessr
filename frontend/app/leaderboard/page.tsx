@@ -20,16 +20,23 @@ const DIFFICULTY_OPTIONS = [
   { key: "hard", label: "Hard" },
 ];
 
+const UNIVERSITY_OPTIONS = [
+  { key: null as string | null, label: "All" },
+  { key: "concordia", label: "Concordia" },
+  { key: "mcgill", label: "McGill" },
+];
+
 export default function LeaderboardPage() {
   const [entries, setEntries] = useState<LeaderboardEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedRounds, setSelectedRounds] = useState<string>("all");
   const [selectedDifficulty, setSelectedDifficulty] = useState<string>("all");
+  const [selectedUniversity, setSelectedUniversity] = useState<string | null>(null);
 
   useEffect(() => {
     fetchLeaderboard();
-  }, [selectedRounds, selectedDifficulty]);
+  }, [selectedRounds, selectedDifficulty, selectedUniversity]);
 
   const fetchLeaderboard = async () => {
     setLoading(true);
@@ -37,7 +44,7 @@ export default function LeaderboardPage() {
     try {
       const rounds = selectedRounds === "all" ? undefined : parseInt(selectedRounds);
       const difficulty = selectedDifficulty === "all" ? undefined : selectedDifficulty;
-      const data = await getLeaderboard(100, rounds, difficulty);
+      const data = await getLeaderboard(100, rounds, difficulty, selectedUniversity);
       setEntries(data);
     } catch (err) {
       setError("Failed to load leaderboard");
@@ -94,6 +101,27 @@ export default function LeaderboardPage() {
 
             {/* Filters */}
             <div className="flex flex-wrap gap-4">
+              {/* University Filter */}
+              <div className="space-y-2">
+                <span className="text-xs font-mono uppercase tracking-wider text-white/40">University</span>
+                <div className="flex gap-1">
+                  {UNIVERSITY_OPTIONS.map((opt) => (
+                    <button
+                      key={String(opt.key)}
+                      type="button"
+                      onClick={() => setSelectedUniversity(opt.key)}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-mono uppercase tracking-wider font-bold transition-all cursor-pointer ${
+                        selectedUniversity === opt.key
+                          ? "bg-white/10 text-white border border-white/20"
+                          : "bg-white/5 text-white/40 border border-transparent hover:bg-white/10 hover:text-white/60"
+                      }`}
+                    >
+                      {opt.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
               {/* Rounds Filter */}
               <div className="space-y-2">
                 <span className="text-xs font-mono uppercase tracking-wider text-white/40">Rounds</span>
@@ -193,7 +221,7 @@ export default function LeaderboardPage() {
                       const rankStyle = getRankDisplay(rank);
                       return (
                         <motion.div
-                          key={entry._id}
+                          key={entry.id}
                           initial={{ opacity: 0, x: -10 }}
                           animate={{ opacity: 1, x: 0 }}
                           transition={{ delay: index * 0.02 }}

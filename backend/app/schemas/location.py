@@ -1,3 +1,5 @@
+"""pydantic schemas for location request and response payloads."""
+
 from datetime import datetime
 from typing import Optional, Union
 

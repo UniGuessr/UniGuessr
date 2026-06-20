@@ -1,3 +1,5 @@
+"""fastapi application entry point with cors and socket.io middleware."""
+
 from contextlib import asynccontextmanager
 
 import uvicorn

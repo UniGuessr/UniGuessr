@@ -3,14 +3,16 @@ export interface LeaderboardEntryCreate {
   score: number;
   rounds: number;
   difficulty: string;
+  university?: string | null;
 }
 
 export interface LeaderboardEntry {
-  _id: string;
+  id: string;
   username: string;
   score: number;
   rounds: number;
   difficulty: string;
+  university?: string | null;
   created_at: string;
   rank?: number;
 }

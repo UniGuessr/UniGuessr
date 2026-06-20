@@ -1,4 +1,4 @@
-"""Test database connection."""
+"""test async postgresql connection via sqlalchemy."""
 import asyncio
 import os
 import sys
@@ -13,7 +13,6 @@ from app.core.database import AsyncSessionLocal
 
 async def main():
     print(f"APP_ENV : {settings.app_env}")
-    print(f"DB host : {settings.db_host}")
     print()
     try:
         async with AsyncSessionLocal() as session:

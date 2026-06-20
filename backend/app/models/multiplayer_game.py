@@ -1,3 +1,5 @@
+"""multiplayer_games table: active multiplayer game state."""
+
 import uuid
 from datetime import datetime, timezone
 

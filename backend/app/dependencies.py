@@ -1,3 +1,5 @@
+"""fastapi dependency: provides an async db session per request."""
+
 from collections.abc import AsyncGenerator
 
 from sqlalchemy.ext.asyncio import AsyncSession

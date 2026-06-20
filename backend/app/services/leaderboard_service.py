@@ -1,3 +1,5 @@
+"""leaderboard service: query and rank high scores by filter."""
+
 import uuid
 from typing import Optional
 

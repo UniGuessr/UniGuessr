@@ -1,3 +1,5 @@
+"""pydantic schemas for single-player session and guess payloads."""
+
 from datetime import datetime
 from enum import Enum
 from typing import List, Optional

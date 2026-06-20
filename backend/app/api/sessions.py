@@ -1,3 +1,5 @@
+"""sessions api: create single-player game sessions and submit guesses."""
+
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 

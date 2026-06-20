@@ -1,3 +1,5 @@
+"""leaderboard table: stores final scores submitted by players."""
+
 import uuid
 from datetime import datetime, timezone
 

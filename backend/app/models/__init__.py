@@ -1,3 +1,5 @@
+"""orm models package: exports all sqlalchemy table models."""
+
 from app.models.location import Location
 from app.models.game_session import GameSession
 from app.models.leaderboard import LeaderboardEntry

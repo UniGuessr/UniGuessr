@@ -1,7 +1,4 @@
-"""
-Migration script to add floor field to existing locations near buildings.
-Sets floor to "1" (string) for locations within building radius.
-"""
+"""backfill floor field on locations near known campus buildings."""
 
 import asyncio
 import sys

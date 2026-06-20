@@ -1,3 +1,5 @@
+"""building config: coordinates and floor counts for on-campus buildings."""
+
 from math import atan2, cos, radians, sin, sqrt
 from typing import List, Optional
 

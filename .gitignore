@@ -28,9 +28,14 @@ yarn-error.log*
 .env*.local
 .env
 
-# Backend env files (contain secrets)
+# Backend env files (contain secrets — live in app/config/, never committed)
+backend/app/config/.env.*
+!backend/app/config/.env.example
+backend/app/config/.secrets.*
+# Legacy backend root env files
 backend/.env.*
 backend/.secrets.*
+backend/.env
 
 # vercel
 .vercel

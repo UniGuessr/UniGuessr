@@ -1,3 +1,5 @@
+"""pydantic schemas for multiplayer lobby and game payloads."""
+
 from datetime import datetime
 from typing import List, Optional
 

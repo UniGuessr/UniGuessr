@@ -1,3 +1,5 @@
+"""session service: game logic, scoring, and guess evaluation."""
+
 import uuid
 from datetime import datetime, timezone
 from math import atan2, cos, exp, radians, sin, sqrt

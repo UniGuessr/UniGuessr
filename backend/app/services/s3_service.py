@@ -1,3 +1,5 @@
+"""s3 service: upload and manage location images in aws s3."""
+
 import uuid
 from pathlib import Path
 from typing import Optional

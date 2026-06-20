@@ -1,3 +1,5 @@
+"""lobbies table: stores multiplayer lobby state and player list."""
+
 import uuid
 from datetime import datetime, timezone
 

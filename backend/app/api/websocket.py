@@ -1,3 +1,5 @@
+"""websocket server: socket.io handlers for real-time multiplayer events."""
+
 from typing import Dict
 
 import socketio

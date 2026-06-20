@@ -6,12 +6,14 @@ const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 export interface SessionCreate {
   rounds: number;
   difficulty: "easy" | "normal" | "hard";
+  university?: string | null;
 }
 
 export interface Session {
-  _id: string;
+  id: string;
   rounds: number;
   difficulty: string;
+  university?: string | null;
   location_ids: string[];
   current_round: number;
   guesses: Guess[];
@@ -146,6 +148,55 @@ export async function getLocationsCount(): Promise<number> {
 
   const data = await response.json();
   return data.count;
+}
+
+export interface LeaderboardEntry {
+  id: string;
+  username: string;
+  score: number;
+  rounds: number;
+  difficulty: string;
+  university?: string | null;
+  created_at: string;
+  rank?: number;
+}
+
+export async function saveScoreToLeaderboard(data: {
+  username: string;
+  score: number;
+  rounds: number;
+  difficulty: string;
+  university?: string | null;
+}): Promise<{ id: string; message: string }> {
+  const response = await fetch(`${API_BASE_URL}/api/leaderboard`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+  });
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.detail || "Failed to save score");
+  }
+  return response.json();
+}
+
+export async function getLeaderboard(
+  limit = 100,
+  rounds?: number,
+  difficulty?: string,
+  university?: string | null
+): Promise<LeaderboardEntry[]> {
+  const params = new URLSearchParams();
+  params.set("limit", String(limit));
+  if (rounds !== undefined) params.set("rounds", String(rounds));
+  if (difficulty) params.set("difficulty", difficulty);
+  if (university) params.set("university", university);
+  const response = await fetch(`${API_BASE_URL}/api/leaderboard?${params}`);
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.detail || "Failed to fetch leaderboard");
+  }
+  return response.json();
 }
 
 

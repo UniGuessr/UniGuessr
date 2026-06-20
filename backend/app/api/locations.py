@@ -1,3 +1,5 @@
+"""locations api: fetch, upload, and manage campus photo locations."""
+
 from typing import List, Optional
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile

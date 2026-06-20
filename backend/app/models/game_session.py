@@ -1,3 +1,5 @@
+"""game_sessions table: stores single-player game state and guesses."""
+
 import uuid
 from datetime import datetime, timezone
 

@@ -1,3 +1,5 @@
+"""location service: fetch random campus locations for game rounds."""
+
 import uuid
 from typing import Optional
 
