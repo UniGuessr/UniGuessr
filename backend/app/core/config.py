@@ -1,5 +1,6 @@
 import os
 from pathlib import Path
+from typing import Optional
 
 from pydantic import Field, computed_field
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -20,11 +21,15 @@ class Settings(BaseSettings):
 
     app_env: str = Field(default="development")
 
-    db_host: str = Field(...)
+    # Optional direct URL override (paste from Supabase dashboard)
+    # Takes precedence over individual db_* fields when set.
+    database_url_override: Optional[str] = Field(default=None, alias="DATABASE_URL")
+
+    db_host: str = Field(default="")
     db_port: int = Field(default=5432)
-    db_name: str = Field(...)
-    db_user: str = Field(...)
-    db_password: str = Field(...)
+    db_name: str = Field(default="postgres")
+    db_user: str = Field(default="postgres")
+    db_password: str = Field(default="")
 
     api_host: str = Field(default="0.0.0.0")
     api_port: int = Field(default=8000)
@@ -39,6 +44,14 @@ class Settings(BaseSettings):
     @computed_field
     @property
     def database_url(self) -> str:
+        if self.database_url_override:
+            url = self.database_url_override
+            # Normalise scheme to asyncpg driver
+            for prefix in ("postgres://", "postgresql://"):
+                if url.startswith(prefix):
+                    url = "postgresql+asyncpg://" + url[len(prefix):]
+                    break
+            return url
         return (
             f"postgresql+asyncpg://{self.db_user}:{self.db_password}"
             f"@{self.db_host}:{self.db_port}/{self.db_name}"
