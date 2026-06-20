@@ -28,6 +28,10 @@ yarn-error.log*
 .env*.local
 .env
 
+# Backend env files (contain secrets)
+backend/.env.*
+backend/.secrets.*
+
 # vercel
 .vercel
 
