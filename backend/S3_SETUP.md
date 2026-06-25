@@ -4,7 +4,7 @@ Complete guide for setting up S3 image storage for ConUGuessr.
 
 ## Overview
 
-Images are stored on AWS S3 at: `https://conuguessr.s3.us-east-2.amazonaws.com/locations/`
+Images are stored on AWS S3 at: `https://uniguessr-dev.s3.us-east-1.amazonaws.com/locations/`
 
 The backend automatically:
 - ✅ Uploads images to S3 when creating locations
@@ -29,7 +29,7 @@ The backend automatically:
 
 ### 2. Configure S3 Bucket Permissions
 
-Make sure your S3 bucket `conuguessr` has:
+Make sure your S3 bucket `uniguessr-dev` has:
 
 **Bucket Policy** (allows public read access):
 ```json
@@ -41,7 +41,7 @@ Make sure your S3 bucket `conuguessr` has:
             "Effect": "Allow",
             "Principal": "*",
             "Action": "s3:GetObject",
-            "Resource": "arn:aws:s3:::conuguessr/*"
+            "Resource": "arn:aws:s3:::uniguessr-dev/*"
         }
     ]
 }
@@ -61,15 +61,15 @@ Make sure your S3 bucket `conuguessr` has:
 
 ### 3. Update .env File
 
-Edit `backend/app/config/.secrets.{APP_ENV}` and add your AWS credentials:
+Edit `backend/app/config/secrets/.secrets.{APP_ENV}` and add your AWS credentials:
 
 ```bash
 # AWS S3 Configuration
 AWS_ACCESS_KEY_ID=YOUR_ACTUAL_ACCESS_KEY_HERE
 AWS_SECRET_ACCESS_KEY=YOUR_ACTUAL_SECRET_KEY_HERE
-AWS_REGION=us-east-2
-S3_BUCKET_NAME=conuguessr
-S3_BASE_URL=https://conuguessr.s3.us-east-2.amazonaws.com
+AWS_REGION=us-east-1
+S3_BUCKET_NAME=uniguessr-dev
+S3_BASE_URL=https://uniguessr-dev.s3.us-east-1.amazonaws.com
 ```
 
 ### 4. Restart the Server
@@ -148,7 +148,7 @@ Body:
   "name": "Building Name",
   "latitude": 45.497,
   "longitude": -73.578,
-  "image_url": "https://conuguessr.s3.us-east-2.amazonaws.com/locations/image.jpg",
+  "image_url": "https://uniguessr-dev.s3.us-east-1.amazonaws.com/locations/image.jpg",
   "difficulty": "easy"
 }
 ```
@@ -162,7 +162,7 @@ The frontend automatically fetches images from S3 URLs stored in the database:
 {
   "_id": "...",
   "name": "Hall Building",
-  "image_url": "https://conuguessr.s3.us-east-2.amazonaws.com/locations/abc123.jpg",
+  "image_url": "https://uniguessr-dev.s3.us-east-1.amazonaws.com/locations/abc123.jpg",
   "latitude": 45.497,
   "longitude": -73.578
 }
@@ -178,7 +178,7 @@ The frontend automatically fetches images from S3 URLs stored in the database:
 **Problem**: Can't connect to S3  
 **Solutions**:
 - Check AWS credentials in `.env`
-- Verify bucket exists and is in `us-east-2` region
+- Verify bucket exists and is in `us-east-1` region
 - Check IAM user has S3 permissions
 
 ### "Failed to upload image to S3"
@@ -207,18 +207,20 @@ backend/
 ├── scripts/
 │   ├── upload_images_to_s3.py    # Upload Pics to S3
 │   └── seed_with_local_images.py # Upload & create locations
-├── src/
+├── app/
 │   ├── services/
 │   │   └── s3_service.py         # S3 upload/delete logic
-│   └── routes/
-│       └── locations.py          # Image upload endpoint
-└── .env                          # AWS credentials here
+│   ├── api/
+│   │   └── locations.py          # Image upload endpoint
+│   └── config/
+│       ├── env/.env.{APP_ENV}        # non-secret config
+│       └── secrets/.secrets.{APP_ENV} # AWS creds (git-ignored)
 ```
 
 ## S3 Bucket Structure
 
 ```
-conuguessr/
+uniguessr-dev/
 └── locations/
     ├── abc123-uuid.jpg
     ├── def456-uuid.jpg

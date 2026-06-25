@@ -2,11 +2,14 @@ APP_ENV ?= development
 
 .PHONY: run run-prod install migrate migrate-down migrate-create migrate-status test-connection shell
 
-run:
-	APP_ENV=development uv run uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+dev:
+	uv run uvicorn main:app --reload --host 127.0.0.1 --port 8000
 
-run-prod:
-	APP_ENV=production uv run uvicorn main:app --host 0.0.0.0 --port 8000
+run:
+	uv run uvicorn main:app --host 127.0.0.1 --port 8000
+
+check:
+	uv run python -m compileall -q main.py src
 
 install:
 	uv sync

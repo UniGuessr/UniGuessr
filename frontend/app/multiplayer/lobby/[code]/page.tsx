@@ -4,7 +4,7 @@ import { useState, useEffect, useRef, use } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Link } from "@heroui/link";
 import { motion, AnimatePresence } from "framer-motion";
-import { PixelButton } from "@/components/pixel-button";
+import { PixelButton } from "@/components/Button/pixel-button";
 import {
   getLobby,
   joinLobby,

@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useRef, useState, useCallback } from "react";
-import mapboxgl from "mapbox-gl";
-import "mapbox-gl/dist/mapbox-gl.css";
+import maplibregl from "maplibre-gl";
+import "maplibre-gl/dist/maplibre-gl.css";
 
 type GuessMapProps = {
   onGuess: (lat: number, lng: number) => void;
@@ -107,16 +107,16 @@ export default function GuessMap({
   distanceMeters = null,
 }: GuessMapProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
-  const mapRef = useRef<mapboxgl.Map | null>(null);
+  const mapRef = useRef<maplibregl.Map | null>(null);
 
   // Guess marker (red pin)
-  const markerRef = useRef<mapboxgl.Marker | null>(null);
+  const markerRef = useRef<maplibregl.Marker | null>(null);
 
   // Actual marker (green pin)
-  const actualMarkerRef = useRef<mapboxgl.Marker | null>(null);
+  const actualMarkerRef = useRef<maplibregl.Marker | null>(null);
 
   // Distance label marker
-  const distanceLabelRef = useRef<mapboxgl.Marker | null>(null);
+  const distanceLabelRef = useRef<maplibregl.Marker | null>(null);
 
   // Line id
   const lineRef = useRef<string | null>(null);
@@ -132,7 +132,7 @@ export default function GuessMap({
   }, []);
 
   const handleMapClick = useCallback(
-    (e: mapboxgl.MapMouseEvent) => {
+    (e: maplibregl.MapMouseEvent) => {
       if (disabled || showResult) return;
 
       const { lat, lng } = e.lngLat;
@@ -144,7 +144,7 @@ export default function GuessMap({
       }
 
       if (mapRef.current) {
-        markerRef.current = new mapboxgl.Marker({
+        markerRef.current = new maplibregl.Marker({
           element: createGuessPinElement(),
           anchor: "bottom",
         })
@@ -162,17 +162,9 @@ export default function GuessMap({
     if (!containerRef.current) return;
     if (mapRef.current) return;
 
-    const token = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
-    if (!token) {
-      console.error("Missing NEXT_PUBLIC_MAPBOX_TOKEN");
-      return;
-    }
-
-    mapboxgl.accessToken = token;
-
-    mapRef.current = new mapboxgl.Map({
+    mapRef.current = new maplibregl.Map({
       container: containerRef.current,
-      style: "mapbox://styles/mapbox/streets-v12",
+      style: "https://tiles.openfreemap.org/styles/liberty",
       center: [-73.57806418862965, 45.49554505697914], // Centered coordinate
       zoom: 15,
       interactive: true,
@@ -180,7 +172,7 @@ export default function GuessMap({
       attributionControl: false,
     });
 
-    mapRef.current.addControl(new mapboxgl.NavigationControl({ showCompass: false }), "top-right");
+    mapRef.current.addControl(new maplibregl.NavigationControl({ showCompass: false }), "top-right");
 
     mapRef.current.on("load", () => {
       const map = mapRef.current;
@@ -191,18 +183,19 @@ export default function GuessMap({
       const labelLayers = layers.filter((layer) => layer.type === "symbol");
       const insertBeforeLayerId = labelLayers[0]?.id;
 
+      // OpenMapTiles schema (OpenFreeMap): source "openmaptiles", building layer
+      // exposes render_height / render_min_height instead of mapbox's height/min_height.
       map.addLayer(
         {
           id: "3d-buildings",
-          source: "composite",
+          source: "openmaptiles",
           "source-layer": "building",
-          filter: ["==", "extrude", "true"],
           type: "fill-extrusion",
           minzoom: 15,
           paint: {
             "fill-extrusion-color": "#ffffff",
-            "fill-extrusion-height": ["get", "height"],
-            "fill-extrusion-base": ["get", "min_height"],
+            "fill-extrusion-height": ["get", "render_height"],
+            "fill-extrusion-base": ["get", "render_min_height"],
             "fill-extrusion-opacity": 0.6,
           },
         },
@@ -241,7 +234,7 @@ export default function GuessMap({
       if (markerRef.current) {
         markerRef.current.remove();
       }
-      markerRef.current = new mapboxgl.Marker({
+      markerRef.current = new maplibregl.Marker({
         element: createGuessPinElement(),
         anchor: "bottom",
       })
@@ -255,7 +248,7 @@ export default function GuessMap({
       if (actualMarkerRef.current) {
         actualMarkerRef.current.remove();
       }
-      actualMarkerRef.current = new mapboxgl.Marker({
+      actualMarkerRef.current = new maplibregl.Marker({
         element: createActualPinElement(),
         anchor: "bottom",
       })
@@ -323,7 +316,7 @@ export default function GuessMap({
           distanceLabelRef.current = null;
         }
 
-        distanceLabelRef.current = new mapboxgl.Marker({
+        distanceLabelRef.current = new maplibregl.Marker({
           element: createDistanceLabelElement(distanceMeters),
           anchor: "center",
         })
@@ -332,7 +325,7 @@ export default function GuessMap({
       }
 
       // Fit bounds to show both markers (happens after label is added)
-      const bounds = new mapboxgl.LngLatBounds()
+      const bounds = new maplibregl.LngLatBounds()
         .extend([guessedLocation.lng, guessedLocation.lat])
         .extend([actualLocation.lng, actualLocation.lat]);
 

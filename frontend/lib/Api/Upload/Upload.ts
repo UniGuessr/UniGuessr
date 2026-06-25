@@ -1,5 +1,5 @@
-import {ApiHelper, API_BASE_URL} from "@/utils/ApiHelper";
-import {LocationUpload} from "@/types/Upload/type";
+import { API_BASE_URL } from "@/utils/ApiHelper";
+import { LocationUpload } from "@/types/Upload/type";
 
 export async function uploadLocation(data: LocationUpload): Promise<{ id: string; image_url: string; message: string }> {
   const formData = new FormData();
@@ -7,21 +7,28 @@ export async function uploadLocation(data: LocationUpload): Promise<{ id: string
   formData.append("latitude", data.latitude.toString());
   formData.append("longitude", data.longitude.toString());
   formData.append("difficulty", data.difficulty);
-  
+
   if (data.building_id) {
     formData.append("building_id", data.building_id);
   }
-  
+
   if (data.floor !== undefined && data.floor !== null) {
     formData.append("floor", data.floor.toString());
   }
-  
+
+  if (data.university) {
+    formData.append("university", data.university);
+  }
+
   formData.append("image", data.image);
 
-  const response = await ApiHelper.post(`${API_BASE_URL}`,`/api/locations/upload`,formData);
+  const response = await fetch(`${API_BASE_URL}/api/locations`, {
+    method: "POST",
+    body: formData,
+  });
 
   if (!response.ok) {
-    const error = await response.json();
+    const error = await response.json().catch(() => ({}));
     throw new Error(error.detail || "Failed to upload location");
   }
 

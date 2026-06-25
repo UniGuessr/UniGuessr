@@ -28,7 +28,12 @@ yarn-error.log*
 .env*.local
 .env
 
-# Backend env files (contain secrets — live in app/config/, never committed)
+# Backend env files (contain secrets — never committed; only templates are tracked)
+backend/app/config/env/.env.*
+!backend/app/config/env/.env.example
+backend/app/config/secrets/.secrets.*
+!backend/app/config/secrets/.template.secrets
+# Legacy flat layout
 backend/app/config/.env.*
 !backend/app/config/.env.example
 backend/app/config/.secrets.*
@@ -57,3 +62,10 @@ ENV/
 *.egg-info/
 dist/
 build/
+
+# The Python venv pattern "ENV/" above matches the config "env/" dir on
+# case-insensitive filesystems (macOS). Re-include the dir so its committed
+# template survives, while keeping the real env files ignored.
+!backend/app/config/env/
+backend/app/config/env/.env.*
+!backend/app/config/env/.env.example

@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { Input } from "@heroui/input";
 import { Link } from "@heroui/link";
 import { motion, AnimatePresence } from "framer-motion";
-import { PixelButton } from "@/components/pixel-button";
+import { PixelButton } from "@/components/Button/pixel-button";
 import {
   createLobby,
   joinMatchmaking,

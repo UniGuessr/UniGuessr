@@ -8,7 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.config_buildings import find_nearby_building
 from app.dependencies import get_db
 from app.schemas.location import LocationCreate, LocationResponse
-from app.services import location_service
+from app.services import location_service, university_service
 from app.services.s3_service import s3_service
 
 router = APIRouter(prefix="/api/locations", tags=["locations"])
@@ -29,11 +29,15 @@ async def create_location(
     if not image.content_type.startswith("image/"):
         raise HTTPException(status_code=400, detail="File must be an image")
 
+    if university and not await university_service.get_by_name(university, db):
+        raise HTTPException(status_code=400, detail=f"Unknown university: {university}")
+
     image_content = await image.read()
     image_url = s3_service.upload_image(
         file_content=image_content,
         filename=image.filename,
         content_type=image.content_type,
+        university=university,
     )
     if not image_url:
         raise HTTPException(status_code=500, detail="Failed to upload image to S3")

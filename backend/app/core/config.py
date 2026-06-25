@@ -8,8 +8,8 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 from app import CONFIG_PATH
 
 APP_ENV = os.getenv("APP_ENV", "development")
-ENV_FILE = CONFIG_PATH / f".env.{APP_ENV}"
-SECRETS_FILE = CONFIG_PATH / f".secrets.{APP_ENV}"
+ENV_FILE = CONFIG_PATH / "env" / f".env.{APP_ENV}"
+SECRETS_FILE = CONFIG_PATH / "secrets" / f".secrets.{APP_ENV}"
 
 
 class Settings(BaseSettings):
@@ -26,11 +26,14 @@ class Settings(BaseSettings):
     api_host: str = Field(default="0.0.0.0")
     api_port: int = Field(default=8000)
     debug: bool = Field(default=True)
+    cors_origins: list[str] = Field(validation_alias="CORS_ORIGINS")
 
+    # aws
     aws_access_key_id: str = Field(default="")
     aws_secret_access_key: str = Field(default="")
     aws_region: str = Field(default="")
     s3_bucket_name: str = Field(default="")
     s3_base_url: str = Field(default="")
+
 
 settings = Settings()

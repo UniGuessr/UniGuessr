@@ -5,5 +5,6 @@ export interface LocationUpload {
   difficulty: string;
   building_id?: string | null;
   floor?: number | null;
+  university?: string | null;
   image: File;
 }

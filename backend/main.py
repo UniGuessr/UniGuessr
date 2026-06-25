@@ -6,7 +6,13 @@ import uvicorn
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.api import leaderboard_router, locations_router, multiplayer_router, sessions_router
+from app.api import (
+    leaderboard_router,
+    locations_router,
+    multiplayer_router,
+    sessions_router,
+    universities_router,
+)
 from app.api.websocket import socket_app
 from app.core.config import settings
 
@@ -25,7 +31,7 @@ app = FastAPI(
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*", "http://localhost:3000"],
+    allow_origins=settings.cors_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -35,6 +41,7 @@ app.include_router(locations_router)
 app.include_router(sessions_router)
 app.include_router(leaderboard_router)
 app.include_router(multiplayer_router)
+app.include_router(universities_router)
 app.mount("/socket.io", socket_app)
 
 

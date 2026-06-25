@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import mapboxgl from "mapbox-gl";
-import "mapbox-gl/dist/mapbox-gl.css";
+import maplibregl from "maplibre-gl";
+import "maplibre-gl/dist/maplibre-gl.css";
 
 type LocationPickerMapProps = {
   onLocationSelect: (lat: number, lng: number) => void;
@@ -29,8 +29,8 @@ export default function LocationPickerMap({
   initialLng,
 }: LocationPickerMapProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
-  const mapRef = useRef<mapboxgl.Map | null>(null);
-  const markerRef = useRef<mapboxgl.Marker | null>(null);
+  const mapRef = useRef<maplibregl.Map | null>(null);
+  const markerRef = useRef<maplibregl.Marker | null>(null);
   const [selectedPosition, setSelectedPosition] = useState<{ lat: number; lng: number } | null>(
     initialLat && initialLng ? { lat: initialLat, lng: initialLng } : null
   );
@@ -48,17 +48,9 @@ export default function LocationPickerMap({
 
     initRef.current = true;
 
-    const token = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
-    if (!token) {
-      console.error("Missing NEXT_PUBLIC_MAPBOX_TOKEN");
-      return;
-    }
-
-    mapboxgl.accessToken = token;
-
-    mapRef.current = new mapboxgl.Map({
+    mapRef.current = new maplibregl.Map({
       container: containerRef.current,
-      style: "mapbox://styles/mapbox/streets-v12",
+      style: "https://tiles.openfreemap.org/styles/liberty",
       center: [-73.57806418862965, 45.49554505697914], // Centered coordinate
       zoom: 15,
       interactive: true,
@@ -66,10 +58,10 @@ export default function LocationPickerMap({
       attributionControl: false,
     });
 
-    mapRef.current.addControl(new mapboxgl.NavigationControl({ showCompass: false }), "top-right");
+    mapRef.current.addControl(new maplibregl.NavigationControl({ showCompass: false }), "top-right");
 
     // Handle map clicks
-    mapRef.current.on("click", (e: mapboxgl.MapMouseEvent) => {
+    mapRef.current.on("click", (e: maplibregl.MapMouseEvent) => {
       const { lat, lng } = e.lngLat;
       setSelectedPosition({ lat, lng });
 
@@ -77,7 +69,7 @@ export default function LocationPickerMap({
       if (markerRef.current) {
         markerRef.current.setLngLat([lng, lat]);
       } else if (mapRef.current) {
-        markerRef.current = new mapboxgl.Marker({ 
+        markerRef.current = new maplibregl.Marker({ 
           element: createGuessPinElement(),
           anchor: "bottom",
           draggable: true 

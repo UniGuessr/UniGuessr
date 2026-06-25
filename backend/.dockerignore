@@ -1,0 +1,26 @@
+# vcs
+.git
+.gitignore
+
+# python
+.venv
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# secrets / env — never bake into image
+app/config/secrets/
+.env
+.env.*
+*.template.secrets
+
+# docs / dev
+*.md
+.python-version
+
+# docker
+Dockerfile
+.dockerignore

@@ -7,7 +7,8 @@ import { Input } from "@heroui/input";
 import { Select, SelectItem } from "@heroui/select";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
-import { uploadLocation } from "@/lib/api";
+import { uploadLocation } from "@/lib/Api/Upload/Upload";
+import { getUniversities, type University } from "@/lib/Api/University/University";
 import LocationPickerMap from "@/components/location-picker-map";
 import FloorSelector from "@/components/Floor Selection/floor-selector";
 import { PixelButton } from "@/components/Button/pixel-button";
@@ -24,6 +25,8 @@ export default function UploadLocationPage() {
   const [name, setName] = useState("");
   const [coordinates, setCoordinates] = useState<{ lat: number; lng: number } | null>(null);
   const [difficulty, setDifficulty] = useState("medium");
+  const [universities, setUniversities] = useState<University[]>([]);
+  const [university, setUniversity] = useState("");
   const [image, setImage] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   
@@ -36,6 +39,12 @@ export default function UploadLocationPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
+
+  useEffect(() => {
+    getUniversities()
+      .then(setUniversities)
+      .catch(() => setError("Failed to load universities"));
+  }, []);
 
   const handleLocationSelect = (lat: number, lng: number) => {
     setCoordinates({ lat, lng });
@@ -85,6 +94,7 @@ export default function UploadLocationPage() {
     setName("");
     setCoordinates(null);
     setDifficulty("medium");
+    setUniversity("");
     setBuildingId(null);
     setFloor(null);
     setNearbyBuilding(null);
@@ -97,7 +107,7 @@ export default function UploadLocationPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name.trim() || !coordinates || !image) {
+    if (!name.trim() || !coordinates || !image || !university) {
       setError("Please complete all fields");
       return;
     }
@@ -109,6 +119,7 @@ export default function UploadLocationPage() {
         latitude: coordinates.lat,
         longitude: coordinates.lng,
         difficulty,
+        university,
         building_id: buildingId,
         floor: floor,
         image: image!,
@@ -184,6 +195,18 @@ export default function UploadLocationPage() {
                   >
                     {DIFFICULTY_OPTIONS.map((opt) => (
                       <SelectItem key={opt.key}>{opt.label}</SelectItem>
+                    ))}
+                  </Select>
+
+                  <Select
+                    label="University"
+                    variant="bordered"
+                    placeholder="Select a university"
+                    selectedKeys={university ? [university] : []}
+                    onChange={(e) => setUniversity(e.target.value)}
+                  >
+                    {universities.map((u) => (
+                      <SelectItem key={u.name}>{u.name}</SelectItem>
                     ))}
                   </Select>
 

@@ -22,9 +22,11 @@ backend/
 ├── alembic/                       # Database migrations
 ├── app/
 │   ├── __init__.py                # Exports CONFIG_PATH
-│   ├── config/                    # Env files (gitignored)
-│   │   ├── .env.example           # Committed template — copy to .env.{APP_ENV}
-│   │   └── .template.secrets      # Committed template — copy to .secrets.{APP_ENV}
+│   ├── config/
+│   │   ├── env/                   # Non-secret config (committed: .env.example)
+│   │   │   └── .env.{APP_ENV}     # Your copy (gitignored)
+│   │   └── secrets/              # Secrets (committed: .template.secrets)
+│   │       └── .secrets.{APP_ENV} # Your copy (gitignored)
 │   ├── config_buildings.py        # Campus building coordinates and floor counts
 │   ├── core/
 │   │   ├── config.py              # Settings (pydantic-settings)
@@ -37,48 +39,62 @@ backend/
 └── scripts/                       # Utility scripts (seed, upload, etc.)
 ```
 
-## Setup
+## Quick Start
 
-### Prerequisites
-
-- Python 3.12+
-- [uv](https://github.com/astral-sh/uv) package manager
-
-### Installation
+Prerequisites: **Python 3.12+** and [uv](https://github.com/astral-sh/uv).
 
 ```bash
+# 1. install dependencies
 make install
-```
 
-### Environment
+# 2. create your env files from the templates
+cp app/config/env/.env.example       app/config/env/.env.development
+cp app/config/secrets/.template.secrets app/config/secrets/.secrets.development
 
-Copy the templates and fill in real values:
+# 3. fill in the values (see "Environment Variables" below)
 
-```bash
-cp app/config/.env.example app/config/.env.development
-cp app/config/.template.secrets app/config/.secrets.development
-```
-
-Set `DATABASE_URL` in `.secrets.development` to your Supabase **Session Mode Pooler** URL (port 5432 — not the direct connection):
-
-```
-DATABASE_URL=postgresql+asyncpg://<user>:<password>@aws-1-us-east-2.pooler.supabase.com:5432/postgres
-```
-
-### Run Migrations
-
-```bash
+# 4. apply database migrations
 make migrate
+
+# 5. start the dev server (auto-reload)
+make run
 ```
 
-### Run the Server
+API: `http://localhost:8000` · Docs: `http://localhost:8000/docs` · Health: `http://localhost:8000/health`
 
-```bash
-make run        # development (auto-reload)
-make run-prod   # production
+> `make run` sets `APP_ENV=development`, so it loads `app/config/env/.env.development`
+> and `app/config/secrets/.secrets.development`. For production use `make run-prod`
+> (loads the `.production` files) or set the variables directly in your host's dashboard
+> (OS env vars take precedence over the files).
+
+## Environment Variables
+
+**Non-secret** — `app/config/env/.env.development`:
+
+| Variable | Required | Example |
+|---|---|---|
+| `CORS_ORIGINS` | **yes** | `http://localhost:3000,http://127.0.0.1:3000` (comma-separated) |
+| `APP_ENV` | no | `development` |
+| `AWS_REGION` | for S3 | `us-east-1` |
+| `S3_BUCKET_NAME` | for S3 | `uniguessr-dev` |
+| `S3_BASE_URL` | for S3 | `https://uniguessr-dev.s3.us-east-1.amazonaws.com` |
+
+**Secret** — `app/config/secrets/.secrets.development` (never commit):
+
+| Variable | Required | Notes |
+|---|---|---|
+| `DATABASE_URL` | **yes** | Supabase **Session Mode Pooler** URL, port 5432 |
+| `AWS_ACCESS_KEY_ID` | for S3 | IAM key with bucket write access |
+| `AWS_SECRET_ACCESS_KEY` | for S3 | — |
+
+`DATABASE_URL` format (note `+asyncpg` and the pooler host, **not** the direct connection):
+
+```
+DATABASE_URL=postgresql+asyncpg://<user>:<password>@<host>.pooler.supabase.com:5432/postgres
 ```
 
-API: `http://localhost:8000` · Docs: `http://localhost:8000/docs`
+> The app **will not start** without `DATABASE_URL` and `CORS_ORIGINS` — both are required.
+> S3 image upload needs the AWS vars; see [S3_SETUP.md](./S3_SETUP.md).
 
 ## Makefile Targets
 

@@ -12,7 +12,7 @@ os.environ.setdefault("APP_ENV", "development")
 
 from app.core.config import settings  # noqa: E402
 from app.core.database import Base  # noqa: E402
-from app.models import Location, GameSession, LeaderboardEntry, Lobby, MultiplayerGame  # noqa: F401,E402
+from app.models import Location, GameSession, LeaderboardEntry, Lobby, MultiplayerGame, University  # noqa: F401,E402
 
 config = context.config
 config.set_main_option("sqlalchemy.url", settings.database_url)

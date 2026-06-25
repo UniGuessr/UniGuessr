@@ -6,8 +6,8 @@ import { Card, CardBody } from "@heroui/card";
 import { Link } from "@heroui/link";
 import { motion, AnimatePresence } from "framer-motion";
 import GuessMap from "@/components/guess-map";
-import { PixelButton } from "@/components/pixel-button";
-import FloorSelector from "@/components/floor-selector";
+import { PixelButton } from "@/components/Button/pixel-button";
+import FloorSelector from "@/components/Floor Selection/floor-selector";
 import { findNearbyBuilding, type Building } from "@/config/buildings";
 import {
   getGame,
