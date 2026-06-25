@@ -1,14 +1,19 @@
+import {ApiHelper} from "@/utils/ApiHelper";
+
+
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
 export interface SessionCreate {
   rounds: number;
   difficulty: "easy" | "normal" | "hard";
+  university?: string | null;
 }
 
 export interface Session {
-  _id: string;
+  id: string;
   rounds: number;
   difficulty: string;
+  university?: string | null;
   location_ids: string[];
   current_round: number;
   guesses: Guess[];
@@ -145,123 +150,53 @@ export async function getLocationsCount(): Promise<number> {
   return data.count;
 }
 
-// Leaderboard types and functions
-export interface LeaderboardEntryCreate {
-  username: string;
-  score: number;
-  rounds: number;
-  difficulty: string;
-}
-
 export interface LeaderboardEntry {
-  _id: string;
+  id: string;
   username: string;
   score: number;
   rounds: number;
   difficulty: string;
+  university?: string | null;
   created_at: string;
   rank?: number;
 }
 
-export async function saveScoreToLeaderboard(
-  data: LeaderboardEntryCreate
-): Promise<{ id: string; message: string }> {
+export async function saveScoreToLeaderboard(data: {
+  username: string;
+  score: number;
+  rounds: number;
+  difficulty: string;
+  university?: string | null;
+}): Promise<{ id: string; message: string }> {
   const response = await fetch(`${API_BASE_URL}/api/leaderboard`, {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify(data),
   });
-
   if (!response.ok) {
     const error = await response.json();
-    throw new Error(error.detail || "Failed to save score to leaderboard");
+    throw new Error(error.detail || "Failed to save score");
   }
-
   return response.json();
 }
 
 export async function getLeaderboard(
-  limit: number = 100,
+  limit = 100,
   rounds?: number,
-  difficulty?: string
+  difficulty?: string,
+  university?: string | null
 ): Promise<LeaderboardEntry[]> {
   const params = new URLSearchParams();
-  params.append("limit", limit.toString());
-  if (rounds) params.append("rounds", rounds.toString());
-  if (difficulty) params.append("difficulty", difficulty);
-
-  const response = await fetch(`${API_BASE_URL}/api/leaderboard?${params.toString()}`);
-
+  params.set("limit", String(limit));
+  if (rounds !== undefined) params.set("rounds", String(rounds));
+  if (difficulty) params.set("difficulty", difficulty);
+  if (university) params.set("university", university);
+  const response = await fetch(`${API_BASE_URL}/api/leaderboard?${params}`);
   if (!response.ok) {
     const error = await response.json();
     throw new Error(error.detail || "Failed to fetch leaderboard");
   }
-
   return response.json();
 }
 
-export async function getUserRank(
-  username: string,
-  rounds?: number,
-  difficulty?: string
-): Promise<{ username: string; rank: number; total_entries: number }> {
-  const params = new URLSearchParams();
-  if (rounds) params.append("rounds", rounds.toString());
-  if (difficulty) params.append("difficulty", difficulty);
 
-  const response = await fetch(
-    `${API_BASE_URL}/api/leaderboard/user/${encodeURIComponent(username)}/rank?${params.toString()}`
-  );
-
-  if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.detail || "Failed to get user rank");
-  }
-
-  return response.json();
-}
-
-// Location upload
-export interface LocationUpload {
-  name: string;
-  latitude: number;
-  longitude: number;
-  difficulty: string;
-  building_id?: string | null;
-  floor?: number | null;
-  image: File;
-}
-
-export async function uploadLocation(
-  data: LocationUpload
-): Promise<{ id: string; image_url: string; message: string }> {
-  const formData = new FormData();
-  formData.append("name", data.name);
-  formData.append("latitude", data.latitude.toString());
-  formData.append("longitude", data.longitude.toString());
-  formData.append("difficulty", data.difficulty);
-  
-  if (data.building_id) {
-    formData.append("building_id", data.building_id);
-  }
-  
-  if (data.floor !== undefined && data.floor !== null) {
-    formData.append("floor", data.floor.toString());
-  }
-  
-  formData.append("image", data.image);
-
-  const response = await fetch(`${API_BASE_URL}/api/locations`, {
-    method: "POST",
-    body: formData,
-  });
-
-  if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.detail || "Failed to upload location");
-  }
-
-  return response.json();
-}

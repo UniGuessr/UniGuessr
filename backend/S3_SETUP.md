@@ -8,7 +8,7 @@ Images are stored on AWS S3 at: `https://conuguessr.s3.us-east-2.amazonaws.com/l
 
 The backend automatically:
 - ✅ Uploads images to S3 when creating locations
-- ✅ Stores S3 URLs in MongoDB
+- ✅ Stores S3 URLs in PostgreSQL
 - ✅ Frontend fetches images directly from S3 URLs
 
 ## Setup Steps
@@ -61,7 +61,7 @@ Make sure your S3 bucket `conuguessr` has:
 
 ### 3. Update .env File
 
-Edit `backend/.env` and add your AWS credentials:
+Edit `backend/app/config/.secrets.{APP_ENV}` and add your AWS credentials:
 
 ```bash
 # AWS S3 Configuration
@@ -108,7 +108,7 @@ uv run scripts/seed_with_local_images.py
 This will:
 1. Read images from `Pics/` folder
 2. Upload each to S3
-3. Create locations in MongoDB with S3 URLs
+3. Create locations in PostgreSQL with S3 URLs
 
 **Edit the script** `scripts/seed_with_local_images.py` to match your images and locations!
 

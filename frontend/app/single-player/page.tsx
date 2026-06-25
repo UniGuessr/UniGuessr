@@ -2,15 +2,13 @@
 
 import { useState, useCallback, useEffect, useRef } from "react";
 import { Card, CardBody, CardHeader, CardFooter } from "@heroui/card";
-import { Select, SelectItem } from "@heroui/select";
-import { Spinner } from "@heroui/spinner";
 import { Link } from "@heroui/link";
 import { Modal, ModalContent, ModalHeader, ModalBody, ModalFooter } from "@heroui/modal";
 import { Input } from "@heroui/input";
 import { motion, AnimatePresence } from "framer-motion";
 import GuessMap from "@/components/guess-map";
-import { PixelButton } from "@/components/pixel-button";
-import FloorSelector from "@/components/floor-selector";
+import { PixelButton } from "@/components/Button/pixel-button";
+import FloorSelector from "@/components/Floor Selection/floor-selector";
 import { findNearbyBuilding, type Building } from "@/config/buildings";
 import {
   createSession,
@@ -30,10 +28,17 @@ const TIMER_OPTIONS = [10, 20, 30];
 
 const ROUND_OPTIONS = [3, 5, 10];
 
+const UNIVERSITY_OPTIONS = [
+  { key: null, label: "All" },
+  { key: "concordia", label: "Concordia" },
+  { key: "mcgill", label: "McGill" },
+];
+
 export default function SinglePlayerPage() {
   // Setup state
   const [rounds, setRounds] = useState<number>(5);
   const [timerDuration, setTimerDuration] = useState<number>(20);
+  const [university, setUniversity] = useState<string | null>(null);
 
   // Game state
   const [gameState, setGameState] = useState<GameState>("setup");
@@ -106,7 +111,7 @@ export default function SinglePlayerPage() {
     try {
       // Submit a guess with coordinates far away to get 0 points
       // This ensures the backend advances to the next round
-      const result = await submitGuess(session._id, 0, 0, null);
+      const result = await submitGuess(session.id, 0, 0, null);
       
       // Override points to 0 since time ran out
       const timeUpResult = {
@@ -164,10 +169,10 @@ export default function SinglePlayerPage() {
     timeUpHandledRef.current = false;
 
     try {
-      const newSession = await createSession({ rounds, difficulty: "normal" });
+      const newSession = await createSession({ rounds, difficulty: "normal", university });
       setSession(newSession);
 
-      const location = await getCurrentLocation(newSession._id);
+      const location = await getCurrentLocation(newSession.id);
       setCurrentLocation(location);
       setGameState("playing");
       setRoundScores([]);
@@ -208,7 +213,7 @@ export default function SinglePlayerPage() {
     setError(null);
 
     try {
-      const result = await submitGuess(session._id, selectedGuess.lat, selectedGuess.lng, floor);
+      const result = await submitGuess(session.id, selectedGuess.lat, selectedGuess.lng, floor);
       setGuessResult(result);
       setRoundScores((prev) => [...prev, result.points]);
       setGameState("result");
@@ -239,7 +244,7 @@ export default function SinglePlayerPage() {
     timeUpHandledRef.current = false;
 
     try {
-      const location = await getCurrentLocation(session._id);
+      const location = await getCurrentLocation(session.id);
       setCurrentLocation(location);
       setGuessResult(null);
       setSelectedGuess(null);
@@ -263,6 +268,7 @@ export default function SinglePlayerPage() {
         score: guessResult.total_score,
         rounds,
         difficulty: "normal",
+        university,
       });
       setScoreSaved(true);
       setTimeout(() => {
@@ -337,6 +343,27 @@ export default function SinglePlayerPage() {
 
               {/* Options */}
               <div className="space-y-6">
+                {/* University */}
+                <div className="space-y-3">
+                  <span className="text-xs font-mono uppercase tracking-wider text-white/40">University</span>
+                  <div className="flex gap-2">
+                    {UNIVERSITY_OPTIONS.map((opt) => (
+                      <button
+                        key={String(opt.key)}
+                        type="button"
+                        onClick={() => setUniversity(opt.key)}
+                        className={`flex-1 py-3 rounded-lg text-sm font-mono uppercase tracking-wider font-bold transition-all cursor-pointer ${
+                          university === opt.key
+                            ? "bg-white/10 text-white border border-white/20"
+                            : "bg-white/5 text-white/40 border border-transparent hover:bg-white/10 hover:text-white/60"
+                        }`}
+                      >
+                        {opt.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
                 {/* Rounds */}
                 <div className="space-y-3">
                   <div className="flex items-center justify-between">
