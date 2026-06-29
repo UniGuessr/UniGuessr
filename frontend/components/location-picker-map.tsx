@@ -50,7 +50,7 @@ export default function LocationPickerMap({
 
     mapRef.current = new maplibregl.Map({
       container: containerRef.current,
-      style: "https://tiles.openfreemap.org/styles/liberty",
+      style: "https://tiles.openfreemap.org/styles/bright",
       center: [-73.57806418862965, 45.49554505697914], // Centered coordinate
       zoom: 15,
       interactive: true,
@@ -59,6 +59,15 @@ export default function LocationPickerMap({
     });
 
     mapRef.current.addControl(new maplibregl.NavigationControl({ showCompass: false }), "top-right");
+
+    // The base style references POI sprite icons that aren't in the loaded
+    // sprite, flooding the console with "styleimagemissing" warnings. Supply a
+    // transparent placeholder so those symbols silently resolve instead.
+    mapRef.current.on("styleimagemissing", (e) => {
+      const map = mapRef.current;
+      if (!map || map.hasImage(e.id)) return;
+      map.addImage(e.id, { width: 1, height: 1, data: new Uint8Array(4) });
+    });
 
     // Handle map clicks
     mapRef.current.on("click", (e: maplibregl.MapMouseEvent) => {
