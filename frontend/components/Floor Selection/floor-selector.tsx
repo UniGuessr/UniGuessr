@@ -1,7 +1,7 @@
 "use client";
 
 import { motion, AnimatePresence } from "framer-motion";
-import { Card, CardBody, CardHeader } from "@heroui/card";
+import clsx from "clsx";
 import type { Building } from "@/config/buildings";
 
 type FloorSelectorProps = {
@@ -9,6 +9,7 @@ type FloorSelectorProps = {
   selectedFloor: number | null;
   onFloorSelect: (floor: number | null) => void;
   size?: "default" | "large";
+  className?: string;
 };
 
 export default function FloorSelector({
@@ -16,71 +17,163 @@ export default function FloorSelector({
   selectedFloor,
   onFloorSelect,
   size = "default",
+  className,
 }: FloorSelectorProps) {
   const handleFloorClick = (floor: number) => {
-    // Toggle: if already selected, deselect (set to null)
-    if (selectedFloor === floor) {
-      onFloorSelect(null);
-    } else {
-      onFloorSelect(floor);
-    }
+    // Toggle: clicking the lit floor turns it off again.
+    onFloorSelect(selectedFloor === floor ? null : floor);
   };
 
   const isLarge = size === "large";
+  // Elevator panels read top-down: highest floor first.
+  const floors = [...building.floors].sort((a, b) => b - a);
+  // Pick a column count that keeps the panel to at most 5 rows so it never
+  // needs to scroll, regardless of how many floors the building has.
+  const columns = Math.min(Math.max(Math.ceil(floors.length / 5), 2), 3);
 
   return (
-    <AnimatePresence>
-      <motion.div
-        initial={{ opacity: 0, scale: 0.9, x: 20 }}
-        animate={{ opacity: 1, scale: 1, x: 0 }}
-        exit={{ opacity: 0, scale: 0.9, x: 20 }}
-        transition={{ type: "spring", damping: 20 }}
-        className="pointer-events-auto"
-        style={{ maxWidth: isLarge ? "360px" : "260px" }}
+    <motion.div
+      initial={{ opacity: 0, y: -16, scale: 0.94 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      exit={{ opacity: 0, y: -16, scale: 0.94 }}
+      transition={{ type: "spring", stiffness: 320, damping: 26 }}
+      className={clsx("pointer-events-auto font-mono select-none", className)}
+      style={{ width: isLarge ? 300 : 250 }}
+    >
+      <div
+        className="overflow-hidden bg-slate-900/95 backdrop-blur-sm border-4 border-slate-950"
+        style={{
+          boxShadow:
+            "4px 4px 0 0 rgba(0,0,0,0.5), inset 0 2px 0 0 rgba(255,255,255,0.06)",
+        }}
       >
-        <Card className="shadow-2xl border-2 border-indigo-200">
-          <CardHeader className={`flex flex-col items-center gap-1 ${isLarge ? "pb-3" : "pb-2"} bg-gradient-to-br from-indigo-50 to-purple-50`}>
-            <div className="text-center">
-              <h3 className={isLarge ? "text-base font-bold text-slate-800" : "text-sm font-bold text-slate-800"}>
-                {building.name}
-              </h3>
-              <p className={isLarge ? "text-xs text-slate-600 mt-0.5" : "text-[10px] text-slate-600 mt-0.5"}>
-                Select floor for bonus
-              </p>
-            </div>
-          </CardHeader>
+        {/* Header */}
+        <div className="px-3 py-2 bg-gradient-to-r from-indigo-600 to-purple-600 border-b-4 border-slate-950">
+          <h3
+            className={clsx(
+              "font-bold uppercase tracking-wider text-white truncate",
+              isLarge ? "text-sm" : "text-xs"
+            )}
+          >
+            {building.name}
+          </h3>
+          <p
+            className={clsx(
+              "uppercase tracking-wider text-indigo-200",
+              isLarge ? "text-[10px]" : "text-[9px]"
+            )}
+          >
+            Select your floor
+          </p>
+        </div>
 
-          <CardBody className={`gap-2 ${isLarge ? "p-4" : "p-3"}`}>
-            {/* Floor selection grid */}
-            <div className={`grid grid-cols-5 ${isLarge ? "gap-2" : "gap-1.5"}`}>
-              {building.floors.map((floor) => (
-                <button
+        <div className={isLarge ? "p-3" : "p-2.5"}>
+          {/* Digital floor readout */}
+          <div
+            className="flex items-center justify-center gap-2 mb-3 border-2 border-slate-700 bg-black py-2"
+            style={{ boxShadow: "inset 0 0 10px rgba(0,0,0,0.9)" }}
+          >
+            <span
+              className={clsx(
+                "text-emerald-500/40",
+                isLarge ? "text-base" : "text-sm"
+              )}
+            >
+              FL
+            </span>
+            <div className="relative h-7 w-12 overflow-hidden">
+              <AnimatePresence mode="popLayout" initial={false}>
+                <motion.span
+                  key={selectedFloor ?? "none"}
+                  initial={{ y: 14, opacity: 0 }}
+                  animate={{ y: 0, opacity: 1 }}
+                  exit={{ y: -14, opacity: 0 }}
+                  transition={{ type: "spring", stiffness: 500, damping: 30 }}
+                  className={clsx(
+                    "absolute inset-0 flex items-center justify-center font-bold tabular-nums",
+                    isLarge ? "text-2xl" : "text-xl",
+                    selectedFloor !== null ? "text-emerald-400" : "text-emerald-700"
+                  )}
+                  style={
+                    selectedFloor !== null
+                      ? { textShadow: "0 0 10px rgba(52,211,153,0.8)" }
+                      : undefined
+                  }
+                >
+                  {selectedFloor ?? "--"}
+                </motion.span>
+              </AnimatePresence>
+            </div>
+          </div>
+
+          {/* Elevator button grid */}
+          <div
+            className={clsx("grid mx-auto w-max", isLarge ? "gap-3" : "gap-2.5")}
+            style={{ gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))` }}
+          >
+            {floors.map((floor, i) => {
+              const active = selectedFloor === floor;
+              return (
+                <motion.button
                   key={floor}
+                  type="button"
                   onClick={() => handleFloorClick(floor)}
-                  className={`
-                    aspect-square rounded-lg font-bold transition-all
-                    ${isLarge ? "text-sm" : "text-xs"}
-                    ${
-                      selectedFloor === floor
-                        ? "bg-indigo-600 text-white shadow-lg scale-105 ring-2 ring-indigo-400"
-                        : "bg-slate-100 text-slate-700 hover:bg-slate-200 hover:scale-105"
-                    }
-                  `}
+                  initial={{ opacity: 0, scale: 0.5 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{
+                    delay: 0.025 * i,
+                    type: "spring",
+                    stiffness: 420,
+                    damping: 22,
+                  }}
+                  whileHover={{ scale: 1.08 }}
+                  whileTap={{ scale: 0.9 }}
+                  className={clsx(
+                    "relative rounded-full flex items-center justify-center font-bold border-2 transition-colors",
+                    isLarge ? "h-12 w-12 text-lg" : "h-11 w-11 text-base",
+                    active
+                      ? "bg-indigo-500 text-white border-indigo-200"
+                      : "bg-slate-800 text-slate-300 border-slate-600 hover:bg-slate-700 hover:text-white hover:border-slate-500"
+                  )}
+                  style={{
+                    boxShadow: active
+                      ? "0 0 14px rgba(99,102,241,0.9), inset 0 0 6px rgba(255,255,255,0.35)"
+                      : "inset 0 -2px 4px rgba(0,0,0,0.4)",
+                  }}
                 >
                   {floor}
-                </button>
-              ))}
-            </div>
+                </motion.button>
+              );
+            })}
+          </div>
 
-            {/* Info message */}
-            <div className={`text-center ${isLarge ? "p-2" : "p-1.5"} bg-blue-50 rounded-lg border border-blue-100`}>
-              <p className={isLarge ? "text-xs text-blue-700 font-medium" : "text-[10px] text-blue-700 font-medium"}>
-                Correct = <strong>+20% bonus</strong>
-              </p>
-            </div>
-          </CardBody>
-        </Card>
-      </motion.div>
-    </AnimatePresence>
+          {/* Bonus hint */}
+          <div
+            className={clsx(
+              "mt-3 flex items-center justify-center gap-1.5 border-2 border-indigo-500/40 bg-indigo-500/10",
+              isLarge ? "py-2" : "py-1.5"
+            )}
+          >
+            <span className={isLarge ? "text-xs" : "text-[10px]"}>▸</span>
+            <span
+              className={clsx(
+                "uppercase tracking-wider text-indigo-300 font-bold",
+                isLarge ? "text-[11px]" : "text-[9px]"
+              )}
+            >
+              Correct floor
+            </span>
+            <span
+              className={clsx(
+                "font-bold text-emerald-400",
+                isLarge ? "text-xs" : "text-[10px]"
+              )}
+            >
+              +20%
+            </span>
+          </div>
+        </div>
+      </div>
+    </motion.div>
   );
 }

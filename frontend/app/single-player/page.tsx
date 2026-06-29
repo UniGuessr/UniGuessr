@@ -588,15 +588,17 @@ export default function SinglePlayerPage() {
                     <div className="flex-1 min-h-0 overflow-hidden relative">
                       <GuessMap onGuess={handleGuessSelect} disabled={loading} />
                       {/* Floor selector positioned near top-right of map */}
-                      {showFloorSelector && nearbyBuilding && (
-                        <div className="absolute top-4 right-4 z-50">
+                      <AnimatePresence>
+                        {showFloorSelector && nearbyBuilding && (
                           <FloorSelector
+                            key={nearbyBuilding.id}
+                            className="absolute top-4 left-4 z-50"
                             building={nearbyBuilding}
                             selectedFloor={selectedFloor}
                             onFloorSelect={setSelectedFloor}
                           />
-                        </div>
-                      )}
+                        )}
+                      </AnimatePresence>
                     </div>
                     <PixelButton
                       size="lg"
