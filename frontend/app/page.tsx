@@ -19,11 +19,11 @@ export default function Home() {
             <SplitFlapAudioProvider>
               <div className="relative">
                 <SplitFlapText
-                  text="ConUGuessr"
+                  text="UNIGUESSR"
                   speed={80}
                   fontSize="8rem"
                   transparent
-                  highlightFrom={4}
+                  highlightFrom={3}
                   highlightColor="#f97316"
                 />
                 <div className="mt-2">
