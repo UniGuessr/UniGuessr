@@ -72,6 +72,9 @@ export default function SinglePlayerPage() {
   const roundTimerRef = useRef<NodeJS.Timeout | null>(null);
   const timeUpHandledRef = useRef(false);
 
+  // Prefetched next-round location (fetched in background during result screen)
+  const prefetchedLocationRef = useRef<CurrentLocation | null>(null);
+
   // Countdown timer effect for map reveal
   useEffect(() => {
     if (gameState === "playing" && mapCountdown > 0) {
@@ -124,6 +127,14 @@ export default function SinglePlayerPage() {
       setRoundScores((prev) => [...prev, 0]);
       setGuessResult(timeUpResult);
       setGameState("result");
+
+      // Prefetch next round in the background
+      if (!timeUpResult.game_complete) {
+        prefetchedLocationRef.current = null;
+        getCurrentLocation(session.id)
+          .then((loc) => { prefetchedLocationRef.current = loc; })
+          .catch(() => {});
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to submit timeout");
       // Fallback: still show result screen with 0 points
@@ -217,6 +228,15 @@ export default function SinglePlayerPage() {
       setGuessResult(result);
       setRoundScores((prev) => [...prev, result.points]);
       setGameState("result");
+
+      // Prefetch the next round's location in the background while the player
+      // reviews their result, so "Next Round" is instant.
+      if (!result.game_complete) {
+        prefetchedLocationRef.current = null;
+        getCurrentLocation(session.id)
+          .then((loc) => { prefetchedLocationRef.current = loc; })
+          .catch(() => {});
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to submit guess");
     } finally {
@@ -244,7 +264,10 @@ export default function SinglePlayerPage() {
     timeUpHandledRef.current = false;
 
     try {
-      const location = await getCurrentLocation(session.id);
+      // Use the prefetched location if it arrived during the result screen,
+      // otherwise fall back to a fresh fetch.
+      const location = prefetchedLocationRef.current ?? await getCurrentLocation(session.id);
+      prefetchedLocationRef.current = null;
       setCurrentLocation(location);
       setGuessResult(null);
       setSelectedGuess(null);
@@ -298,6 +321,7 @@ export default function SinglePlayerPage() {
     setShowLeaderboardModal(false);
     setUsername("");
     setScoreSaved(false);
+    prefetchedLocationRef.current = null;
   };
 
   const formatDistance = (meters: number): string => {
