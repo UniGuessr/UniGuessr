@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import maplibregl from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
+import { BUILDINGS_WITH_FLOORS } from "@/config/buildings";
 
 type GuessMapProps = {
   onGuess: (lat: number, lng: number) => void;
@@ -230,6 +231,114 @@ export default function GuessMap({
       map.off("click", handleMapClick);
     };
   }, [handleMapClick]);
+
+  /**
+   * Persistently highlight the Concordia buildings using their real OSM
+   * footprints, drawn as exact polygon perimeters with a gentle pulse.
+   */
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) return;
+
+    const SOURCE_ID = "concordia-highlight";
+    const FILL_ID = "concordia-highlight-fill";
+    const OUTLINE_ID = "concordia-highlight-outline";
+    const LABEL_SOURCE_ID = "concordia-highlight-labels";
+    const LABEL_ID = "concordia-highlight-label";
+
+    // Short display names for the highlighted buildings.
+    const SHORT_LABELS: Record<string, string> = {
+      hall_building: "Hall",
+      ev_building: "EV",
+      mb_building: "JMSB",
+    };
+
+    let raf: number | null = null;
+
+    const footprints: GeoJSON.FeatureCollection = {
+      type: "FeatureCollection",
+      features: BUILDINGS_WITH_FLOORS.map((b) => ({
+        type: "Feature",
+        properties: { id: b.id },
+        geometry: { type: "Polygon", coordinates: [b.footprint] },
+      })),
+    };
+
+    const labels: GeoJSON.FeatureCollection = {
+      type: "FeatureCollection",
+      features: BUILDINGS_WITH_FLOORS.map((b) => ({
+        type: "Feature",
+        properties: { label: SHORT_LABELS[b.id] ?? b.name },
+        geometry: { type: "Point", coordinates: [b.longitude, b.latitude] },
+      })),
+    };
+
+    const init = () => {
+      if (mapRef.current !== map || map.getSource(SOURCE_ID)) return;
+
+      map.addSource(SOURCE_ID, { type: "geojson", data: footprints });
+      map.addLayer({
+        id: FILL_ID,
+        type: "fill",
+        source: SOURCE_ID,
+        paint: { "fill-color": "#f97316", "fill-opacity": 0.1 },
+      });
+      map.addLayer({
+        id: OUTLINE_ID,
+        type: "line",
+        source: SOURCE_ID,
+        layout: { "line-join": "round", "line-cap": "round" },
+        paint: { "line-color": "#fb923c", "line-width": 3 },
+      });
+
+      map.addSource(LABEL_SOURCE_ID, { type: "geojson", data: labels });
+      map.addLayer({
+        id: LABEL_ID,
+        type: "symbol",
+        source: LABEL_SOURCE_ID,
+        layout: {
+          "text-field": ["get", "label"],
+          "text-size": 14,
+          "text-font": ["Noto Sans Bold", "Open Sans Bold"],
+          "text-allow-overlap": true,
+        },
+        paint: {
+          "text-color": "#c2410c",
+          "text-halo-color": "#ffffff",
+          "text-halo-width": 1.5,
+        },
+      });
+
+      const start = performance.now();
+      const animate = (t: number) => {
+        if (mapRef.current !== map || !map.getLayer(OUTLINE_ID)) return;
+        // Slower pulse (lower angular frequency) and gentler opacities.
+        const pulse = 0.5 + 0.5 * Math.sin(((t - start) / 1000) * 1.2);
+        map.setPaintProperty(OUTLINE_ID, "line-width", 2 + pulse * 1.5);
+        map.setPaintProperty(OUTLINE_ID, "line-opacity", 0.3 + pulse * 0.2);
+        map.setPaintProperty(FILL_ID, "fill-opacity", 0.05 + pulse * 0.07);
+        raf = requestAnimationFrame(animate);
+      };
+      raf = requestAnimationFrame(animate);
+    };
+
+    if (map.isStyleLoaded()) init();
+    else map.once("load", init);
+
+    return () => {
+      if (raf !== null) {
+        cancelAnimationFrame(raf);
+        raf = null;
+      }
+      // Bail if the map has been torn down (its style is gone after remove()).
+      if (mapRef.current !== map || !map.getStyle()) return;
+      if (map.getLayer(LABEL_ID)) map.removeLayer(LABEL_ID);
+      if (map.getLayer(OUTLINE_ID)) map.removeLayer(OUTLINE_ID);
+      if (map.getLayer(FILL_ID)) map.removeLayer(FILL_ID);
+      if (map.getSource(LABEL_SOURCE_ID)) map.removeSource(LABEL_SOURCE_ID);
+      if (map.getSource(SOURCE_ID)) map.removeSource(SOURCE_ID);
+    };
+  }, []);
 
   /**
    * Ensure markers exist/update when result mode is shown.
