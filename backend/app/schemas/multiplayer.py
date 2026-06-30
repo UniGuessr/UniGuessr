@@ -77,6 +77,7 @@ class MultiplayerGameResponse(BaseModel):
     current_round: int
     players: List[PlayerGameState]
     status: str
+    university: Optional[str] = None
     round_started_at: datetime
     started_at: datetime
     completed_at: Optional[datetime] = None

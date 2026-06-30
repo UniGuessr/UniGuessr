@@ -19,6 +19,7 @@ class MultiplayerGame(Base):
     current_round: Mapped[int] = mapped_column(Integer, default=0)
     players: Mapped[list] = mapped_column(JSONB, nullable=False, default=list)
     status: Mapped[str] = mapped_column(String, default="active")
+    university: Mapped[str | None] = mapped_column(String, nullable=True)
     round_started_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         default=lambda: datetime.now(timezone.utc),

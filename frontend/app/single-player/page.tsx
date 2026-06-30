@@ -9,7 +9,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import GuessMap from "@/components/guess-map";
 import { PixelButton } from "@/components/Button/pixel-button";
 import FloorSelector from "@/components/Floor Selection/floor-selector";
-import { findNearbyBuilding, type Building } from "@/config/buildings";
+import { findNearbyBuilding, type Building, type University } from "@/config/buildings";
 import {
   createSession,
   getCurrentLocation,
@@ -28,7 +28,7 @@ const TIMER_OPTIONS = [10, 20, 30];
 
 const ROUND_OPTIONS = [3, 5, 10];
 
-const UNIVERSITY_OPTIONS = [
+const UNIVERSITY_OPTIONS: { key: University | null; label: string }[] = [
   { key: null, label: "All" },
   { key: "concordia", label: "Concordia" },
   { key: "mcgill", label: "McGill" },
@@ -38,7 +38,7 @@ export default function SinglePlayerPage() {
   // Setup state
   const [rounds, setRounds] = useState<number>(5);
   const [timerDuration, setTimerDuration] = useState<number>(20);
-  const [university, setUniversity] = useState<string | null>(null);
+  const [university, setUniversity] = useState<University | null>(null);
 
   // Game state
   const [gameState, setGameState] = useState<GameState>("setup");
@@ -617,7 +617,7 @@ export default function SinglePlayerPage() {
                 >
                   <div className="flex flex-col h-full w-full overflow-hidden relative">
                     <div className="flex-1 min-h-0 overflow-hidden relative">
-                      <GuessMap onGuess={handleGuessSelect} disabled={loading} />
+                      <GuessMap onGuess={handleGuessSelect} disabled={loading} university={university} />
                       {/* Floor selector positioned near top-right of map */}
                       <AnimatePresence>
                         {showFloorSelector && nearbyBuilding && (

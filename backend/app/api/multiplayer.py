@@ -131,6 +131,7 @@ async def start_game(
             "current_round": game.current_round,
             "players": game.players,
             "status": game.status,
+            "university": game.university,
         },
     }
 
@@ -208,6 +209,7 @@ async def get_game(game_id: str, db: AsyncSession = Depends(get_db)):
         "current_round": game.current_round,
         "players": game.players,
         "status": game.status,
+        "university": game.university,
     }
 
 

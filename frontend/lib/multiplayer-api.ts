@@ -31,6 +31,7 @@ export interface MultiplayerGame {
   current_round: number;
   players: PlayerGameState[];
   status: "active" | "completed";
+  university?: "concordia" | "mcgill" | null;
   round_started_at: string;
   started_at: string;
   completed_at: string | null;

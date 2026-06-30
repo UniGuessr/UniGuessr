@@ -188,6 +188,7 @@ async def start_game(code: str, host_id: str, db: AsyncSession) -> Optional[Mult
         current_round=0,
         players=player_states,
         status="active",
+        university=lobby.university,
         round_started_at=now,
         started_at=now,
     )

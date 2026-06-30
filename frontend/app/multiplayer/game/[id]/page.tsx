@@ -797,6 +797,7 @@ export default function MultiplayerGamePage({ params }: { params: Promise<{ id: 
                     <GuessMap
                       onGuess={handleGuessSelect}
                       disabled={hasSubmitted || loading || timeRemaining <= 0}
+                      university={game?.university ?? null}
                       onCursorMove={(lat, lng) =>
                         socketRef.current?.sendCursor(gameId, playerId!, lat, lng, username)
                       }
@@ -1041,6 +1042,7 @@ export default function MultiplayerGamePage({ params }: { params: Promise<{ id: 
                   onGuess={() => {}}
                   disabled
                   showResult
+                  university={game?.university ?? null}
                   guessedLocation={
                     selectedGuess
                       ? { lat: selectedGuess.lat, lng: selectedGuess.lng }

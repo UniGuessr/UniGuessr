@@ -1,9 +1,14 @@
 "use client";
 
-import { useEffect, useRef, useState, useCallback } from "react";
+import { useEffect, useRef, useState, useCallback, useMemo } from "react";
 import maplibregl from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
-import { BUILDINGS_WITH_FLOORS } from "@/config/buildings";
+import {
+  CAMPUSES,
+  campusIdsForUniversity,
+  type CampusId,
+  type University,
+} from "@/config/buildings";
 
 type GuessMapProps = {
   onGuess: (lat: number, lng: number) => void;
@@ -17,6 +22,12 @@ type GuessMapProps = {
   onCursorMove?: (lat: number, lng: number) => void;
   /** Opponent cursors to render as ghost pointers. */
   opponentCursors?: { playerId: string; username: string; lat: number; lng: number }[];
+  /**
+   * University filter for the game. Controls which campuses are highlighted and
+   * the campus selector: "concordia"/"mcgill" show a two-campus toggle, while
+   * null ("all campuses") shows a dropdown of every campus.
+   */
+  university?: University | null;
 };
 
 // Stable-ish colour per opponent, derived from their id.
@@ -153,6 +164,7 @@ export default function GuessMap({
   distanceMeters = null,
   onCursorMove,
   opponentCursors,
+  university = null,
 }: GuessMapProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<maplibregl.Map | null>(null);
@@ -179,6 +191,25 @@ export default function GuessMap({
   }, [onCursorMove]);
 
   const [, setSelectedPosition] = useState<{ lat: number; lng: number } | null>(null);
+
+  // Campuses available for this university filter; the first is the start campus.
+  const campusIds = useMemo(() => campusIdsForUniversity(university), [university]);
+  const startCampusId = campusIds[0];
+
+  // Which campus the map is currently framed on (drives the corner selector).
+  const [campus, setCampus] = useState<CampusId>(startCampusId);
+
+  // Reset the selection if the university filter changes.
+  useEffect(() => {
+    setCampus(startCampusId);
+  }, [startCampusId]);
+
+  // Fly the map to a campus and remember it.
+  const flyToCampus = useCallback((target: CampusId) => {
+    setCampus(target);
+    const view = CAMPUSES[target].view;
+    mapRef.current?.flyTo({ center: view.center, zoom: view.zoom, duration: 1200 });
+  }, []);
 
   // Clear the guess marker
   const clearMarker = useCallback(() => {
@@ -222,7 +253,8 @@ export default function GuessMap({
     mapRef.current = new maplibregl.Map({
       container: containerRef.current,
       style: "https://tiles.openfreemap.org/styles/bright",
-      center: [-73.57806418862965, 45.49554505697914], // Centered coordinate
+      // Open on the starting campus for the selected university (mounted once).
+      center: CAMPUSES[startCampusId].view.center,
       zoom: 15,
       interactive: true,
       dragRotate: false,
@@ -346,8 +378,10 @@ export default function GuessMap({
   }, []);
 
   /**
-   * Persistently highlight the Concordia buildings using their real OSM
-   * footprints, drawn as exact polygon perimeters with a gentle pulse.
+   * Persistently highlight the campus buildings for the active university
+   * filter (every campus that university owns, or all four when "all campuses")
+   * using their real OSM footprints, drawn as exact polygon perimeters with a
+   * gentle pulse.
    */
   useEffect(() => {
     const map = mapRef.current;
@@ -359,18 +393,15 @@ export default function GuessMap({
     const LABEL_SOURCE_ID = "concordia-highlight-labels";
     const LABEL_ID = "concordia-highlight-label";
 
-    // Short display names for the highlighted buildings.
-    const SHORT_LABELS: Record<string, string> = {
-      hall_building: "Hall",
-      ev_building: "EV",
-      mb_building: "JMSB",
-    };
+    const ALL_BUILDINGS = campusIdsForUniversity(university).flatMap(
+      (id) => CAMPUSES[id].buildings
+    );
 
     let raf: number | null = null;
 
     const footprints: GeoJSON.FeatureCollection = {
       type: "FeatureCollection",
-      features: BUILDINGS_WITH_FLOORS.map((b) => ({
+      features: ALL_BUILDINGS.map((b) => ({
         type: "Feature",
         properties: { id: b.id },
         geometry: { type: "Polygon", coordinates: [b.footprint] },
@@ -379,9 +410,9 @@ export default function GuessMap({
 
     const labels: GeoJSON.FeatureCollection = {
       type: "FeatureCollection",
-      features: BUILDINGS_WITH_FLOORS.map((b) => ({
+      features: ALL_BUILDINGS.map((b) => ({
         type: "Feature",
-        properties: { label: SHORT_LABELS[b.id] ?? b.name },
+        properties: { label: b.label },
         geometry: { type: "Point", coordinates: [b.longitude, b.latitude] },
       })),
     };
@@ -460,7 +491,7 @@ export default function GuessMap({
       if (map.getSource(LABEL_SOURCE_ID)) map.removeSource(LABEL_SOURCE_ID);
       if (map.getSource(SOURCE_ID)) map.removeSource(SOURCE_ID);
     };
-  }, []);
+  }, [university]);
 
   /**
    * Ensure markers exist/update when result mode is shown.
@@ -636,16 +667,17 @@ export default function GuessMap({
     if (!disabled && !showResult) {
       clearMarker();
       setSelectedPosition(null);
+      setCampus(startCampusId);
 
       if (mapRef.current) {
         mapRef.current.flyTo({
-          center: [-73.57806418862965, 45.49554505697914],
+          center: CAMPUSES[startCampusId].view.center,
           zoom: 17,
           duration: 1000,
         });
       }
     }
-  }, [disabled, showResult, clearMarker]);
+  }, [disabled, showResult, clearMarker, startCampusId]);
 
   /**
    * Resize map when visibility changes (fixes rendering issues during animations)
@@ -659,9 +691,62 @@ export default function GuessMap({
     }
   }, [isVisible]);
 
+  // The other campus to jump to in single-university toggle mode.
+  const otherCampusId = campusIds.find((id) => id !== campus) ?? startCampusId;
+
+  const campusPinIcon = (
+    <svg
+      width="16"
+      height="16"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M21 10c0 7-9 12-9 12s-9-5-9-12a9 9 0 0 1 18 0z" />
+      <circle cx="12" cy="10" r="3" />
+    </svg>
+  );
+
   return (
     <div className="relative w-full h-full rounded-xl overflow-hidden shadow-lg border-2 border-slate-200">
       <div ref={containerRef} className="w-full h-full" />
+
+      {/*
+        Campus selector (top-left): a two-campus toggle when a single university
+        is selected, or a dropdown of every campus in "all campuses" mode.
+      */}
+      <div className="absolute top-3 left-3 z-20">
+        {university === null ? (
+          <div className="flex items-center gap-1.5 rounded-lg bg-white/95 pl-2.5 pr-1.5 py-2 text-sm font-semibold text-slate-700 shadow-md ring-1 ring-slate-200 backdrop-blur">
+            {campusPinIcon}
+            <select
+              value={campus}
+              onChange={(e) => flyToCampus(e.target.value as CampusId)}
+              aria-label="Jump to campus"
+              className="cursor-pointer bg-transparent pr-1 font-semibold text-slate-700 focus:outline-none"
+            >
+              {campusIds.map((id) => (
+                <option key={id} value={id}>
+                  {CAMPUSES[id].name}
+                </option>
+              ))}
+            </select>
+          </div>
+        ) : (
+          <button
+            type="button"
+            onClick={() => flyToCampus(otherCampusId)}
+            title={`Jump to ${CAMPUSES[otherCampusId].shortLabel} campus`}
+            className="flex items-center gap-1.5 rounded-lg bg-white/95 px-3 py-2 text-sm font-semibold text-slate-700 shadow-md ring-1 ring-slate-200 backdrop-blur transition hover:bg-white hover:text-slate-900"
+          >
+            {campusPinIcon}
+            Go to {CAMPUSES[otherCampusId].shortLabel}
+          </button>
+        )}
+      </div>
 
       {disabled && !showResult && (
         <div className="absolute inset-0 bg-black/20 flex items-center justify-center">
