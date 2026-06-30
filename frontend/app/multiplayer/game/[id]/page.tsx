@@ -24,6 +24,9 @@ type GameState = "loading" | "playing" | "waiting_results" | "results" | "finish
 
 const ROUND_TIMEOUT_SECONDS = 20;
 
+// How long the results screen stays up before automatically moving on.
+const RESULTS_DISPLAY_SECONDS = 4;
+
 export default function MultiplayerGamePage({ params }: { params: Promise<{ id: string }> }) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -148,10 +151,13 @@ export default function MultiplayerGamePage({ params }: { params: Promise<{ id: 
       clearTimer();
       const gameData = await getGame(gameId);
       setGame(gameData);
-      setGameState("waiting_results");
-      // Transition to results after a short delay
+      // Only move forward — never bounce a client that's already on results or
+      // finished back to waiting (which could strand the final-round transition).
+      setGameState((prev) =>
+        prev === "playing" || prev === "waiting_results" ? "waiting_results" : prev
+      );
       setTimeout(() => {
-        setGameState("results");
+        setGameState((prev) => (prev === "waiting_results" ? "results" : prev));
       }, 1000);
     });
 
@@ -190,6 +196,8 @@ export default function MultiplayerGamePage({ params }: { params: Promise<{ id: 
           setGameState("playing");
           setGuessResult(null);
           setSelectedGuess(null);
+          setError(null); // clear any stale submit error from the previous round
+          setOpponentCursors({});
           startTimer();
         }
 
@@ -204,16 +212,32 @@ export default function MultiplayerGamePage({ params }: { params: Promise<{ id: 
           }
         }
 
-        // Auto-transition to finished if on final round and all players completed
-        if (gameState === "results" && gameData.current_round >= gameData.location_ids.length - 1) {
+        // Backstop: if we've already readied for this (non-final) round but it
+        // hasn't advanced, re-send ready. The backend force-advances a round
+        // whose results have been shown past the grace period, so an idle or
+        // closed peer that never readies can't strand us on the results screen.
+        if (
+          readiedRoundRef.current === gameData.current_round &&
+          gameData.current_round === currentRoundRef.current &&
+          gameData.current_round < (gameData.location_ids?.length ?? 0) - 1
+        ) {
+          markReadyNextRound(gameId, playerId!).catch(() => {});
+        }
+
+        // Fallback to finish the game on the final round even if the auto-advance
+        // timer was disrupted (the only other path to "finished"). Honour the
+        // results display window so the final result isn't skipped.
+        if (gameState === "results" && gameData.current_round >= (gameData.location_ids?.length ?? 0) - 1) {
           const allCompleted = gameData.players.every(
-            (p: any) => !p.disconnected && p.guesses.length >= gameData.location_ids.length
+            (p: any) => p.disconnected || p.guesses.length >= (gameData.location_ids?.length ?? 0)
           );
-          if (allCompleted) {
-            console.log("All players completed final round - fetching leaderboard");
+          const shownFor = resultsShownAtRef.current
+            ? Date.now() - resultsShownAtRef.current
+            : 0;
+          if (allCompleted && shownFor >= RESULTS_DISPLAY_SECONDS * 1000) {
             const leaderboardData = await getLeaderboard(gameId);
             setLeaderboard(leaderboardData);
-            // Don't auto-transition, let user click the button to see results
+            setGameState("finished");
           }
         }
       } catch (err) {
@@ -232,7 +256,8 @@ export default function MultiplayerGamePage({ params }: { params: Promise<{ id: 
       setTimeRemaining((prev) => {
         if (prev <= 1) {
           clearTimer();
-          handleTimeout();
+          // Call the latest handler via ref to avoid stale-closure state.
+          handleTimeoutRef.current();
           return 0;
         }
         return prev - 1;
@@ -248,11 +273,21 @@ export default function MultiplayerGamePage({ params }: { params: Promise<{ id: 
   };
 
   const handleTimeout = async () => {
-    // Auto-submit empty guess if not submitted
-    if (selectedGuess && gameState === "playing") {
-      await finalizeGuessSubmission(null);
+    if (gameState !== "playing") return;
+    // Always submit on timeout so the round can complete for everyone, even if
+    // this player never placed a marker (counts as a 0-point guess).
+    if (selectedGuess) {
+      await finalizeGuessSubmission(selectedFloor);
+    } else {
+      await finalizeGuessSubmission(null, { lat: 0, lng: 0 });
     }
   };
+
+  // Always invoke the freshest handleTimeout from the timer (avoids stale state).
+  const handleTimeoutRef = useRef(handleTimeout);
+  useEffect(() => {
+    handleTimeoutRef.current = handleTimeout;
+  });
 
   const handleGuessSelect = useCallback((lat: number, lng: number) => {
     setSelectedGuess({ lat, lng });
@@ -269,19 +304,23 @@ export default function MultiplayerGamePage({ params }: { params: Promise<{ id: 
   }, []);
 
   const submitCurrentGuess = async () => {
-    if (!selectedGuess) return;
+    if (!selectedGuess || timeRemaining <= 0) return;
     await finalizeGuessSubmission(selectedFloor);
   };
 
-  const finalizeGuessSubmission = async (floor: number | null) => {
-    if (!selectedGuess) return;
+  const finalizeGuessSubmission = async (
+    floor: number | null,
+    coordsOverride?: { lat: number; lng: number }
+  ) => {
+    const coords = coordsOverride ?? selectedGuess;
+    if (!coords) return;
 
     setLoading(true);
     setError(null);
     clearTimer();
 
     try {
-      const result = await submitGuess(gameId, playerId!, selectedGuess.lat, selectedGuess.lng, floor);
+      const result = await submitGuess(gameId, playerId!, coords.lat, coords.lng, floor);
       setGuessResult(result);
       
       const gameData = await getGame(gameId);
@@ -297,7 +336,40 @@ export default function MultiplayerGamePage({ params }: { params: Promise<{ id: 
         setGameState("waiting_results");
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to submit guess");
+      // A failed submit is only a real error if we genuinely have no guess
+      // recorded for this round. If a guess already landed (e.g. a timeout vs.
+      // manual-submit race), don't alarm the player — just move on.
+      try {
+        const latest = await getGame(gameId);
+        setGame(latest);
+        const me = latest.players.find((p) => p.player_id === playerId);
+        const alreadySubmitted = !!(me && me.guesses.length > latest.current_round);
+        if (alreadySubmitted) {
+          // The guess actually landed (e.g. the response was lost in transit).
+          // Rebuild the result from what's recorded so the results screen renders.
+          const lastGuess = me!.guesses[me!.guesses.length - 1];
+          setGuessResult((prev: any) => prev ?? {
+            points: lastGuess.points,
+            distance_meters: lastGuess.distance_meters,
+            floor_bonus: lastGuess.floor_bonus || 0,
+            speed_bonus: lastGuess.speed_bonus || 0,
+            actual_location: {
+              latitude: lastGuess.actual_latitude,
+              longitude: lastGuess.actual_longitude,
+              name: currentLocation?.name || "Unknown Location",
+            },
+            guessed_location: {
+              latitude: lastGuess.guessed_latitude,
+              longitude: lastGuess.guessed_longitude,
+            },
+          });
+          setGameState("waiting_results");
+        } else {
+          setError(err instanceof Error ? err.message : "Failed to submit guess");
+        }
+      } catch {
+        setError(err instanceof Error ? err.message : "Failed to submit guess");
+      }
     } finally {
       setLoading(false);
       setShowFloorSelector(false);
@@ -306,23 +378,68 @@ export default function MultiplayerGamePage({ params }: { params: Promise<{ id: 
     }
   };
 
-  const [readyingUp, setReadyingUp] = useState(false);
-
-  const handleNextRound = async () => {
-    if (!game) return;
-
-    setReadyingUp(true);
-    try {
-      const updatedGame = await markReadyNextRound(gameId, playerId!);
-      setGame(updatedGame);
-      // Round will advance automatically when all players ready
-      // WebSocket will notify us
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to advance round");
-    } finally {
-      setReadyingUp(false);
+  const clearAutoAdvance = () => {
+    if (autoAdvanceTimerRef.current) {
+      clearTimeout(autoAdvanceTimerRef.current);
+      autoAdvanceTimerRef.current = null;
+    }
+    if (autoAdvanceTickRef.current) {
+      clearInterval(autoAdvanceTickRef.current);
+      autoAdvanceTickRef.current = null;
     }
   };
+
+  // Auto-advance: once results are shown, display them briefly then move on
+  // automatically (no manual "Next Round" click needed). The timer is scheduled
+  // once per round and deliberately NOT cancelled by transient gameState flips
+  // (e.g. a late round_complete bouncing results -> waiting_results -> results),
+  // which previously left the first submitter stuck and never readied.
+  useEffect(() => {
+    if (gameState !== "results" || !game) return;
+
+    const round = game.current_round;
+    if (autoAdvancedRoundRef.current === round) return; // already scheduled
+    autoAdvancedRoundRef.current = round;
+    resultsShownAtRef.current = Date.now();
+
+    const isFinalRound = round >= (game.location_ids?.length ?? 0) - 1;
+    setResultsCountdown(RESULTS_DISPLAY_SECONDS);
+
+    clearAutoAdvance();
+    autoAdvanceTickRef.current = setInterval(() => {
+      setResultsCountdown((s) => Math.max(0, s - 1));
+    }, 1000);
+
+    autoAdvanceTimerRef.current = setTimeout(async () => {
+      clearAutoAdvance();
+      // Skip if the round already moved on while we were counting down.
+      if (currentRoundRef.current !== round) return;
+
+      if (isFinalRound) {
+        try {
+          const leaderboardData = await getLeaderboard(gameId);
+          setLeaderboard(leaderboardData);
+        } catch (err) {
+          console.error("Failed to fetch leaderboard:", err);
+        }
+        setGameState("finished");
+      } else {
+        // Mark ready; the backend advances + emits round_started once everyone
+        // is ready (or force-advances after a grace period). We intentionally
+        // don't apply the returned game here so the round number doesn't change
+        // locally before the round actually starts.
+        readiedRoundRef.current = round;
+        try {
+          await markReadyNextRound(gameId, playerId!);
+        } catch (err) {
+          console.error("Failed to auto-advance:", err);
+        }
+      }
+    }, RESULTS_DISPLAY_SECONDS * 1000);
+  }, [gameState, game?.current_round, gameId, playerId]);
+
+  // Cancel any pending auto-advance timer on unmount.
+  useEffect(() => clearAutoAdvance, []);
 
   const getCurrentPlayerState = () => {
     if (!game || !playerId) return null;
@@ -808,10 +925,16 @@ export default function MultiplayerGamePage({ params }: { params: Promise<{ id: 
                       transition={{ delay: 0.4 }}
                       className="text-center"
                     >
-                      <p className="text-slate-500 text-xs font-mono uppercase tracking-wider">Distance from actual location</p>
-                      <p className="text-2xl font-semibold text-slate-700 font-mono">
-                        {formatDistance(guessResult.distance_meters)}
-                      </p>
+                      {selectedGuess ? (
+                        <>
+                          <p className="text-slate-500 text-xs font-mono uppercase tracking-wider">Distance from actual location</p>
+                          <p className="text-2xl font-semibold text-slate-700 font-mono">
+                            {formatDistance(guessResult.distance_meters)}
+                          </p>
+                        </>
+                      ) : (
+                        <p className="text-slate-500 text-sm font-mono uppercase tracking-wider">No guess submitted</p>
+                      )}
                     </motion.div>
 
                     <motion.div
@@ -827,17 +950,32 @@ export default function MultiplayerGamePage({ params }: { params: Promise<{ id: 
                     </motion.div>
 
                     {/* Player Ready Status - show on non-final rounds */}
-                    {game.current_round < game.location_ids.length - 1 && (
+                    {game.current_round < (game.location_ids?.length ?? 0) - 1 && (
                       <motion.div
                         initial={{ opacity: 0, y: 10 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: 0.6 }}
                         className="w-full space-y-2"
                       >
-                        <p className="text-slate-500 text-xs font-mono uppercase tracking-wider text-center">Players Ready</p>
+                        {(() => {
+                          // "Ready" = this player has locked in a guess for the
+                          // current round. Unlike ready_for_next_round (which the
+                          // backend wipes the instant it advances), this is stable
+                          // and actually reaches all-green before the round moves on.
+                          const activePlayers = game.players.filter((p) => !p.disconnected);
+                          const allReady = activePlayers.every(
+                            (p) => p.guesses.length > game.current_round
+                          );
+                          return (
+                            <p className={`text-xs font-mono uppercase tracking-wider text-center ${allReady ? "text-green-600 font-bold" : "text-slate-500"}`}>
+                              {allReady ? "All players ready!" : "Players Ready"}
+                            </p>
+                          );
+                        })()}
                         <div className="flex flex-wrap justify-center gap-2">
                           {game.players.map((player) => {
-                            const isReady = player.ready_for_next_round;
+                            const isReady =
+                              player.disconnected || player.guesses.length > game.current_round;
                             const isCurrentPlayer = player.player_id === playerId;
                             return (
                               <div
@@ -861,60 +999,37 @@ export default function MultiplayerGamePage({ params }: { params: Promise<{ id: 
                       </motion.div>
                     )}
 
-                    {gameState === "waiting_results" && game.current_round < game.location_ids.length - 1 && (
+                    {gameState === "waiting_results" && game.current_round < (game.location_ids?.length ?? 0) - 1 && (
                       <div className="text-center py-2">
                         <p className="text-slate-500 font-mono uppercase tracking-wider text-xs">Waiting for all players to submit...</p>
                       </div>
                     )}
 
-                    {gameState === "waiting_results" && game.current_round >= game.location_ids.length - 1 && (
+                    {gameState === "waiting_results" && game.current_round >= (game.location_ids?.length ?? 0) - 1 && (
                       <div className="text-center py-4">
                         <Loader2 className="animate-spin mx-auto mb-2 text-orange-500" size={24} />
                         <p className="text-slate-600 font-mono uppercase tracking-wider text-xs">Final round complete! Waiting for other players...</p>
                       </div>
                     )}
 
-                    {gameState === "results" && game.current_round < game.location_ids.length - 1 && (
-                      <PixelButton
-                        onClick={handleNextRound}
-                        size="lg"
-                        className="w-full mt-4"
-                        variant="secondary"
-                        isLoading={readyingUp}
-                        disabled={currentPlayer?.ready_for_next_round}
-                      >
-                        {currentPlayer?.ready_for_next_round ? (
-                          <>
-                            <div className="w-2 h-2 rounded-full bg-green-500 mr-2" />
-                            Ready! Waiting for others...
-                          </>
-                        ) : (
-                          "Next Round →"
-                        )}
-                      </PixelButton>
-                    )}
-
-                    {gameState === "results" && game.current_round >= game.location_ids.length - 1 && (
-                      <PixelButton
-                        onClick={async () => {
-                          // Fetch leaderboard and show final results
-                          try {
-                            const leaderboardData = await getLeaderboard(gameId);
-                            setLeaderboard(leaderboardData);
-                            setGameState("finished");
-                          } catch (err) {
-                            console.error("Failed to fetch leaderboard:", err);
-                            // Fallback: just go to finished state
-                            setGameState("finished");
-                          }
-                        }}
-                        size="lg"
-                        className="w-full mt-4"
-                        variant="secondary"
-                      >
-                        <Trophy className="mr-2" size={20} />
-                        See Final Results
-                      </PixelButton>
+                    {gameState === "results" && (
+                      <div className="mt-4 text-center">
+                        <p className="text-slate-500 font-mono uppercase tracking-wider text-xs mb-2">
+                          {game.current_round >= (game.location_ids?.length ?? 0) - 1
+                            ? `Final results in ${resultsCountdown}…`
+                            : `Next round in ${resultsCountdown}…`}
+                        </p>
+                        <div className="h-2 w-full bg-slate-200 rounded-full overflow-hidden">
+                          <motion.div
+                            className="h-full bg-orange-500"
+                            initial={{ width: "100%" }}
+                            animate={{
+                              width: `${(resultsCountdown / RESULTS_DISPLAY_SECONDS) * 100}%`,
+                            }}
+                            transition={{ duration: 1, ease: "linear" }}
+                          />
+                        </div>
+                      </div>
                     )}
                   </CardBody>
                 </Card>

@@ -16,7 +16,34 @@ from app.services import location_service, session_service
 
 MAX_PLAYERS = 4
 ROUND_TIMEOUT_SECONDS = 20
+# Once every active player has submitted, the round is force-advanced this many
+# seconds later even if someone never sends "ready" (closed/idle tab), so one
+# player can't strand the rest on the results screen. Kept under the client's
+# results display so a player's own auto-advance reliably triggers it.
+RESULTS_GRACE_SECONDS = 3
 _SAFE_CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
+
+
+def _latest_guess_time(active_players: list[dict], round_index: int):
+    """The most recent submit time among ``active_players`` for the given round,
+    i.e. when the results screen began. Returns None if anyone hasn't submitted."""
+    latest = None
+    for p in active_players:
+        guesses = p.get("guesses", [])
+        if len(guesses) <= round_index:
+            return None
+        ts = guesses[round_index].get("timestamp")
+        if not ts:
+            continue
+        try:
+            dt = datetime.fromisoformat(ts)
+        except (ValueError, TypeError):
+            continue
+        if dt.tzinfo is None:
+            dt = dt.replace(tzinfo=timezone.utc)
+        if latest is None or dt > latest:
+            latest = dt
+    return latest
 
 
 def _generate_lobby_code() -> str:
@@ -172,12 +199,19 @@ async def start_game(code: str, host_id: str, db: AsyncSession) -> Optional[Mult
     return game
 
 
-async def get_game(game_id: str, db: AsyncSession) -> Optional[MultiplayerGame]:
+async def get_game(
+    game_id: str, db: AsyncSession, for_update: bool = False
+) -> Optional[MultiplayerGame]:
     try:
         uid = uuid.UUID(game_id)
     except (ValueError, AttributeError):
         return None
-    result = await db.execute(select(MultiplayerGame).where(MultiplayerGame.id == uid))
+    stmt = select(MultiplayerGame).where(MultiplayerGame.id == uid)
+    if for_update:
+        # Serialize concurrent read-modify-write on the players JSONB column so
+        # near-simultaneous submits / ready calls don't clobber each other.
+        stmt = stmt.with_for_update()
+    result = await db.execute(stmt)
     return result.scalar_one_or_none()
 
 
@@ -193,7 +227,7 @@ async def get_current_location(game_id: str, db: AsyncSession):
 async def submit_guess(
     game_id: str, player_id: str, guess_submit: GuessSubmit, db: AsyncSession
 ) -> Optional[dict]:
-    game = await get_game(game_id, db)
+    game = await get_game(game_id, db, for_update=True)
     if not game or game.status != "active":
         return None
 
@@ -265,24 +299,44 @@ async def submit_guess(
 async def mark_ready_for_next_round(
     game_id: str, player_id: str, db: AsyncSession
 ) -> Optional[MultiplayerGame]:
-    game = await get_game(game_id, db)
+    # Lock the row for the whole read-modify-write so concurrent ready calls
+    # serialize (each sees the others' flags) instead of clobbering each other.
+    game = await get_game(game_id, db, for_update=True)
     if not game:
         return None
 
     players = [PlayerGameState(**p) for p in game.players]
-    game.players = [
+    updated = [
         {**ps.model_dump(mode="json"), "ready_for_next_round": True}
         if ps.player_id == player_id
         else ps.model_dump(mode="json")
         for ps in players
     ]
+
+    active = [p for p in updated if not p.get("disconnected")]
+    all_ready = bool(active) and all(p["ready_for_next_round"] for p in active)
+
+    # Failsafe: if every active player has already submitted a guess for this
+    # round and the results have been shown longer than the grace period, advance
+    # even if someone never sent "ready" (closed/idle tab) so the round can't
+    # stall forever.
+    force_advance = False
+    if active and all(len(p["guesses"]) > game.current_round for p in active):
+        completion = _latest_guess_time(active, game.current_round)
+        if completion is not None:
+            elapsed = (datetime.now(timezone.utc) - completion).total_seconds()
+            force_advance = elapsed >= RESULTS_GRACE_SECONDS
+
+    if (all_ready or force_advance) and game.current_round < len(game.location_ids) - 1:
+        # Advance in the same locked transaction to avoid a double-advance gap.
+        game.players = [{**p, "ready_for_next_round": False} for p in updated]
+        game.current_round += 1
+        game.round_started_at = datetime.now(timezone.utc)
+    else:
+        game.players = updated
+
     await db.commit()
     await db.refresh(game)
-
-    refreshed = [PlayerGameState(**p) for p in game.players]
-    all_ready = all(ps.ready_for_next_round for ps in refreshed if not ps.disconnected)
-    if all_ready and game.current_round < len(game.location_ids) - 1:
-        game = await advance_round(game_id, db)
     return game
 
 
