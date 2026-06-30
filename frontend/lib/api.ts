@@ -50,6 +50,7 @@ export interface GuessResult {
   distance_meters: number;
   points: number;
   floor_bonus: number;
+  speed_bonus?: number;
   guessed_floor?: number | null;
   actual_floor?: number | null;
   actual_location: {
@@ -112,15 +113,31 @@ export async function submitGuess(
   sessionId: string,
   latitude: number,
   longitude: number,
-  floor?: number | null
+  floor?: number | null,
+  secondsRemaining?: number | null,
+  timerDuration?: number | null
 ): Promise<GuessResult> {
-  const body: { latitude: number; longitude: number; floor?: number | null } = {
+  const body: {
+    latitude: number;
+    longitude: number;
+    floor?: number | null;
+    seconds_remaining?: number;
+    timer_duration?: number;
+  } = {
     latitude,
     longitude,
   };
-  
+
   if (floor !== undefined && floor !== null) {
     body.floor = floor;
+  }
+
+  // Sent so the backend can award a speed bonus for fast guesses.
+  if (secondsRemaining !== undefined && secondsRemaining !== null) {
+    body.seconds_remaining = secondsRemaining;
+  }
+  if (timerDuration !== undefined && timerDuration !== null) {
+    body.timer_duration = timerDuration;
   }
 
   const response = await fetch(`${API_BASE_URL}/api/sessions/${sessionId}/guess`, {

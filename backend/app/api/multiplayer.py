@@ -262,6 +262,7 @@ async def submit_guess(
         "distance_meters": result["guess"].distance_meters,
         "points": result["guess"].points,
         "floor_bonus": result["guess"].floor_bonus,
+        "speed_bonus": result["guess"].speed_bonus,
         "guessed_floor": result["guess"].guessed_floor,
         "actual_floor": result["guess"].actual_floor,
         "actual_location": {

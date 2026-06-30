@@ -24,6 +24,7 @@ class Guess(BaseModel):
     guessed_floor: Optional[int] = None
     actual_floor: Optional[int] = None
     floor_bonus: int = 0
+    speed_bonus: int = 0
     timestamp: datetime
 
 
@@ -60,3 +61,7 @@ class GuessSubmit(BaseModel):
     latitude: float
     longitude: float
     floor: Optional[int] = None
+    # Single-player only: the on-screen round timer state at submit time, used to
+    # award a speed bonus. Multiplayer ignores these and times the round server-side.
+    seconds_remaining: Optional[float] = None
+    timer_duration: Optional[float] = None

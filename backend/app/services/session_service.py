@@ -79,6 +79,21 @@ def calculate_floor_bonus(base_points: int, actual_floor, guessed_floor: Optiona
         return 0
 
 
+def calculate_speed_bonus(
+    base_points: int,
+    elapsed_seconds: float,
+    timeout_seconds: float,
+    max_fraction: float = 0.5,
+) -> int:
+    """Reward fast guesses: up to ``max_fraction`` of the base points for an
+    instant guess, decaying linearly to 0 as the round timeout is reached."""
+    if base_points <= 0 or timeout_seconds <= 0:
+        return 0
+    remaining = 1 - elapsed_seconds / timeout_seconds
+    remaining = max(0.0, min(1.0, remaining))
+    return round(base_points * max_fraction * remaining)
+
+
 async def submit_guess(
     session_id: str, guess_submit: GuessSubmit, db: AsyncSession
 ) -> Optional[dict]:
@@ -98,7 +113,18 @@ async def submit_guess(
     )
     base_points = calculate_points(distance)
     floor_bonus = calculate_floor_bonus(base_points, location.floor, guess_submit.floor)
-    total_points = base_points + floor_bonus
+
+    # Reward fast guesses with up to +50% of the base points. The client reports
+    # its round-timer state since the timeout is player-configurable and the round
+    # isn't timed server-side here.
+    speed_bonus = 0
+    if guess_submit.seconds_remaining is not None and guess_submit.timer_duration:
+        elapsed = guess_submit.timer_duration - guess_submit.seconds_remaining
+        speed_bonus = calculate_speed_bonus(
+            base_points, elapsed, guess_submit.timer_duration
+        )
+
+    total_points = base_points + floor_bonus + speed_bonus
 
     guess = Guess(
         location_id=str(location.id),
@@ -111,6 +137,7 @@ async def submit_guess(
         guessed_floor=guess_submit.floor,
         actual_floor=location.floor,
         floor_bonus=floor_bonus,
+        speed_bonus=speed_bonus,
         timestamp=datetime.now(timezone.utc),
     )
 

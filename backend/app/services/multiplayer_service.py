@@ -212,7 +212,18 @@ async def submit_guess(
     )
     base_points = session_service.calculate_points(distance)
     floor_bonus = session_service.calculate_floor_bonus(base_points, location.floor, guess_submit.floor)
-    total_points = base_points + floor_bonus
+
+    # Reward fast guesses with up to +50% of the base points, decaying to 0 by
+    # the time the round times out.
+    started = game.round_started_at
+    if started.tzinfo is None:
+        started = started.replace(tzinfo=timezone.utc)
+    elapsed = (datetime.now(timezone.utc) - started).total_seconds()
+    speed_bonus = session_service.calculate_speed_bonus(
+        base_points, elapsed, ROUND_TIMEOUT_SECONDS
+    )
+
+    total_points = base_points + floor_bonus + speed_bonus
 
     guess = Guess(
         location_id=str(location.id),
@@ -225,6 +236,7 @@ async def submit_guess(
         guessed_floor=guess_submit.floor,
         actual_floor=location.floor,
         floor_bonus=floor_bonus,
+        speed_bonus=speed_bonus,
         timestamp=datetime.now(timezone.utc),
     )
 

@@ -224,7 +224,14 @@ export default function SinglePlayerPage() {
     setError(null);
 
     try {
-      const result = await submitGuess(session.id, selectedGuess.lat, selectedGuess.lng, floor);
+      const result = await submitGuess(
+        session.id,
+        selectedGuess.lat,
+        selectedGuess.lng,
+        floor,
+        roundTimer,
+        timerDuration
+      );
       setGuessResult(result);
       setRoundScores((prev) => [...prev, result.points]);
       setGameState("result");
@@ -683,7 +690,11 @@ export default function SinglePlayerPage() {
                       </p>
                       <div className="flex items-baseline justify-center gap-2">
                         <p className={`text-6xl font-bold font-mono ${getScoreColor()}`}>
-                          {(guessResult.points - (guessResult.floor_bonus || 0)).toLocaleString()}
+                          {(
+                            guessResult.points -
+                            (guessResult.floor_bonus || 0) -
+                            (guessResult.speed_bonus || 0)
+                          ).toLocaleString()}
                         </p>
                         {guessResult.floor_bonus > 0 && (
                           <motion.div
@@ -697,6 +708,21 @@ export default function SinglePlayerPage() {
                             </p>
                             <p className="text-[10px] text-purple-500 font-mono uppercase tracking-wider">
                               Floor
+                            </p>
+                          </motion.div>
+                        )}
+                        {(guessResult.speed_bonus || 0) > 0 && (
+                          <motion.div
+                            initial={{ opacity: 0, scale: 0 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            transition={{ delay: 0.4, type: "spring" }}
+                            className="flex flex-col items-start"
+                          >
+                            <p className="text-2xl font-bold text-sky-600 leading-none font-mono">
+                              +{guessResult.speed_bonus}
+                            </p>
+                            <p className="text-[10px] text-sky-500 font-mono uppercase tracking-wider">
+                              Speed
                             </p>
                           </motion.div>
                         )}
