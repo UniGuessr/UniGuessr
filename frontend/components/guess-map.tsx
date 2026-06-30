@@ -404,6 +404,15 @@ export default function GuessMap({
         paint: { "line-color": "#fb923c", "line-width": 3 },
       });
 
+      // Reuse a font stack the base style already loads — the glyph server only
+      // serves the exact stacks the style references, so a custom one (e.g.
+      // "Noto Sans Bold,Open Sans Bold") 404s and spams the console.
+      const styleLayers = map.getStyle().layers ?? [];
+      const fontLayer = styleLayers.find(
+        (l) => l.type === "symbol" && (l.layout as any)?.["text-font"]
+      );
+      const textFont = (fontLayer?.layout as any)?.["text-font"] ?? ["Noto Sans Regular"];
+
       map.addSource(LABEL_SOURCE_ID, { type: "geojson", data: labels });
       map.addLayer({
         id: LABEL_ID,
@@ -412,7 +421,7 @@ export default function GuessMap({
         layout: {
           "text-field": ["get", "label"],
           "text-size": 14,
-          "text-font": ["Noto Sans Bold", "Open Sans Bold"],
+          "text-font": textFont,
           "text-allow-overlap": true,
         },
         paint: {
