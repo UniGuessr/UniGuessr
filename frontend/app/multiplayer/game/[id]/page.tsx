@@ -44,9 +44,27 @@ export default function MultiplayerGamePage({ params }: { params: Promise<{ id: 
   const [showFloorSelector, setShowFloorSelector] = useState(false);
   const [selectedFloor, setSelectedFloor] = useState<number | null>(null);
 
+  // Opponent live cursors (player_id -> position), shown after you submit
+  const [opponentCursors, setOpponentCursors] = useState<
+    Record<string, { username: string; lat: number; lng: number }>
+  >({});
+
   // Timer
   const [timeRemaining, setTimeRemaining] = useState(ROUND_TIMEOUT_SECONDS);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Countdown shown on the results screen before auto-advancing
+  const [resultsCountdown, setResultsCountdown] = useState(RESULTS_DISPLAY_SECONDS);
+  const autoAdvancedRoundRef = useRef<number | null>(null);
+  const autoAdvanceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const autoAdvanceTickRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  // The round this client has already sent "ready" for; lets the poll retry the
+  // advance if that call didn't take (so an idle peer can't strand us).
+  const readiedRoundRef = useRef<number | null>(null);
+  // When the results screen was shown for the current round (ms). Lets the poll
+  // reliably finish the game on the final round even if the auto-advance timer
+  // gets disrupted, while still honouring the results display duration.
+  const resultsShownAtRef = useRef<number | null>(null);
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -96,15 +114,28 @@ export default function MultiplayerGamePage({ params }: { params: Promise<{ id: 
     socketRef.current = socket;
 
     socket.on("round_started", async () => {
-      const gameData = await getGame(gameId);
+      // Fetch game state and next location in parallel to minimise round-start latency.
+      const [gameData, location] = await Promise.all([
+        getGame(gameId),
+        getCurrentLocation(gameId),
+      ]);
       setGame(gameData);
       currentRoundRef.current = gameData.current_round;
-      const location = await getCurrentLocation(gameId);
       setCurrentLocation(location);
       setGameState("playing");
       setGuessResult(null);
       setSelectedGuess(null);
+      setError(null); // a stale "couldn't submit" must not linger into a new round
+      setOpponentCursors({}); // clear ghost cursors from the previous round
       startTimer();
+    });
+
+    socket.on("cursor_update", (data: { player_id: string; username: string; lat: number; lng: number }) => {
+      if (!data || data.player_id === playerId) return;
+      setOpponentCursors((prev) => ({
+        ...prev,
+        [data.player_id]: { username: data.username, lat: data.lat, lng: data.lng },
+      }));
     });
 
     socket.on("guess_submitted", async () => {
@@ -647,28 +678,39 @@ export default function MultiplayerGamePage({ params }: { params: Promise<{ id: 
                   <div className="flex-1 min-h-0 overflow-hidden relative">
                     <GuessMap
                       onGuess={handleGuessSelect}
-                      disabled={hasSubmitted || loading}
+                      disabled={hasSubmitted || loading || timeRemaining <= 0}
+                      onCursorMove={(lat, lng) =>
+                        socketRef.current?.sendCursor(gameId, playerId!, lat, lng, username)
+                      }
                     />
                     {/* Floor selector */}
-                    {showFloorSelector && nearbyBuilding && (
-                      <div className="absolute top-4 right-4 z-50">
+                    <AnimatePresence>
+                      {showFloorSelector && nearbyBuilding && (
                         <FloorSelector
+                          key={nearbyBuilding.id}
+                          className="absolute top-4 left-4 z-50"
                           building={nearbyBuilding}
                           selectedFloor={selectedFloor}
                           onFloorSelect={setSelectedFloor}
                         />
-                      </div>
-                    )}
+                      )}
+                    </AnimatePresence>
                   </div>
                   <PixelButton
                     size="lg"
                     className="flex-shrink-0 w-full"
                     onClick={submitCurrentGuess}
-                    disabled={!selectedGuess || hasSubmitted}
+                    disabled={!selectedGuess || hasSubmitted || timeRemaining <= 0}
                     isLoading={loading}
                     variant="secondary"
                   >
-                    {hasSubmitted ? "Waiting for others..." : selectedGuess ? "Submit Guess" : "Place your marker on the map"}
+                    {hasSubmitted
+                      ? "Waiting for others..."
+                      : timeRemaining <= 0
+                        ? "Time's up!"
+                        : selectedGuess
+                          ? "Submit Guess"
+                          : "Place your marker on the map"}
                   </PixelButton>
                   {error && (
                     <div className="p-2 bg-red-500/20 border border-red-500/30 rounded-lg text-red-400 text-xs font-mono uppercase tracking-wider flex-shrink-0">
@@ -875,6 +917,9 @@ export default function MultiplayerGamePage({ params }: { params: Promise<{ id: 
                     name: guessResult.actual_location.name,
                   }}
                   distanceMeters={guessResult.distance_meters}
+                  opponentCursors={Object.entries(opponentCursors).map(
+                    ([id, c]) => ({ playerId: id, ...c })
+                  )}
                 />
               </div>
             </div>

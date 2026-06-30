@@ -13,7 +13,33 @@ type GuessMapProps = {
   actualLocation?: { lat: number; lng: number; name: string } | null;
   isVisible?: boolean;
   distanceMeters?: number | null;
+  /** Called (throttled) as the mouse moves over the map, for streaming the cursor. */
+  onCursorMove?: (lat: number, lng: number) => void;
+  /** Opponent cursors to render as ghost pointers. */
+  opponentCursors?: { playerId: string; username: string; lat: number; lng: number }[];
 };
+
+// Stable-ish colour per opponent, derived from their id.
+const OPPONENT_COLORS = ["#f59e0b", "#ec4899", "#14b8a6", "#8b5cf6", "#ef4444", "#22c55e", "#0ea5e9"];
+function colorForId(id: string): string {
+  let h = 0;
+  for (let i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) >>> 0;
+  return OPPONENT_COLORS[h % OPPONENT_COLORS.length];
+}
+
+// A ghost cursor (pointer + name label) for an opponent.
+function createOpponentCursorElement(username: string, color: string): HTMLDivElement {
+  const el = document.createElement("div");
+  el.style.cssText =
+    "display:flex;align-items:flex-start;gap:4px;pointer-events:none;transition:transform 0.15s linear;";
+  el.innerHTML = `
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" style="filter:drop-shadow(0 1px 2px rgba(0,0,0,0.4))">
+      <path d="M5 3l14 7-6 2-2 6-6-15z" fill="${color}" stroke="white" stroke-width="1.5" stroke-linejoin="round"/>
+    </svg>
+    <span style="background:${color};color:white;font-size:10px;font-weight:600;padding:1px 6px;border-radius:8px;white-space:nowrap;box-shadow:0 1px 3px rgba(0,0,0,0.3)">${username}</span>
+  `;
+  return el;
+}
 
 // Helper to format distance
 function formatDistance(meters: number): string {
@@ -66,26 +92,35 @@ function createDistanceLabelElement(distance: number): HTMLDivElement {
   return el;
 }
 
-// Helper to create the red guess pin marker element
-function createGuessPinElement(): HTMLDivElement {
-  const el = document.createElement("div");
-  el.style.cssText = "width: 30px; height: 40px; cursor: pointer; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));";
-  el.innerHTML = `
+// A small badge rendered above a pin to label what it represents.
+function pinLabelMarkup(label: string, color: string): string {
+  return `<span style="background:${color};color:white;font-size:10px;font-weight:700;padding:2px 7px;border-radius:6px;white-space:nowrap;box-shadow:0 1px 3px rgba(0,0,0,0.3);text-transform:uppercase;letter-spacing:0.04em;font-family:ui-monospace,monospace;">${label}</span>`;
+}
+
+// Helper to create the red guess pin marker element. With a label, the badge
+// sits above the pin (the element is bottom-anchored so the tip stays on point).
+function createGuessPinElement(label?: string): HTMLDivElement {
+  const pinSvg = `
     <svg width="30" height="40" viewBox="0 0 30 40" fill="none" xmlns="http://www.w3.org/2000/svg">
       <path d="M15 0C6.716 0 0 6.716 0 15c0 10.969 13.5 24.062 14.063 24.625a1.406 1.406 0 0 0 1.874 0C16.5 39.062 30 25.969 30 15 30 6.716 23.284 0 15 0z" fill="#ef4444"/>
       <circle cx="15" cy="14" r="6" fill="white"/>
     </svg>
   `;
+  const el = document.createElement("div");
+  if (!label) {
+    el.style.cssText = "width: 30px; height: 40px; cursor: pointer; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));";
+    el.innerHTML = pinSvg;
+    return el;
+  }
+  el.style.cssText =
+    "display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer;pointer-events:none;filter:drop-shadow(0 2px 4px rgba(0,0,0,0.3));";
+  el.innerHTML = `${pinLabelMarkup(label, "#ef4444")}${pinSvg}`;
   return el;
 }
 
-// Helper to create the green actual location marker element
-function createActualPinElement(): HTMLDivElement {
-  const el = document.createElement("div");
-  el.style.cssText =
-    "width: 30px; height: 40px; cursor: pointer; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.4));";
-
-  el.innerHTML = `
+// Helper to create the green actual location marker element.
+function createActualPinElement(label?: string): HTMLDivElement {
+  const pinSvg = `
     <svg width="30" height="40" viewBox="0 0 30 40" fill="none" xmlns="http://www.w3.org/2000/svg">
       <path
         d="M15 0C6.716 0 0 6.716 0 15c0 10.969 13.5 24.062 14.063 24.625a1.406 1.406 0 0 0 1.874 0C16.5 39.062 30 25.969 30 15 30 6.716 23.284 0 15 0z"
@@ -94,6 +129,16 @@ function createActualPinElement(): HTMLDivElement {
       <circle cx="15" cy="14" r="6" fill="white"/>
     </svg>
   `;
+  const el = document.createElement("div");
+  if (!label) {
+    el.style.cssText =
+      "width: 30px; height: 40px; cursor: pointer; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.4));";
+    el.innerHTML = pinSvg;
+    return el;
+  }
+  el.style.cssText =
+    "display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer;pointer-events:none;filter:drop-shadow(0 2px 4px rgba(0,0,0,0.4));";
+  el.innerHTML = `${pinLabelMarkup(label, "#16a34a")}${pinSvg}`;
   return el;
 }
 
@@ -106,6 +151,8 @@ export default function GuessMap({
   actualLocation,
   isVisible = true,
   distanceMeters = null,
+  onCursorMove,
+  opponentCursors,
 }: GuessMapProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<maplibregl.Map | null>(null);
@@ -121,6 +168,15 @@ export default function GuessMap({
 
   // Line id
   const lineRef = useRef<string | null>(null);
+
+  // Opponent ghost-cursor markers, keyed by player id
+  const opponentMarkersRef = useRef<Map<string, maplibregl.Marker>>(new Map());
+
+  // Keep the latest onCursorMove callback without re-initialising the map
+  const onCursorMoveRef = useRef(onCursorMove);
+  useEffect(() => {
+    onCursorMoveRef.current = onCursorMove;
+  }, [onCursorMove]);
 
   const [, setSelectedPosition] = useState<{ lat: number; lng: number } | null>(null);
 
@@ -185,6 +241,17 @@ export default function GuessMap({
       map.addImage(e.id, { width: 1, height: 1, data: new Uint8Array(4) });
     });
 
+    // Stream the local cursor position (throttled) when a consumer is listening.
+    let lastCursorSent = 0;
+    mapRef.current.on("mousemove", (e: maplibregl.MapMouseEvent) => {
+      const cb = onCursorMoveRef.current;
+      if (!cb) return;
+      const now = performance.now();
+      if (now - lastCursorSent < 120) return;
+      lastCursorSent = now;
+      cb(e.lngLat.lat, e.lngLat.lng);
+    });
+
     mapRef.current.on("load", () => {
       const map = mapRef.current;
       if (!map) return;
@@ -231,6 +298,52 @@ export default function GuessMap({
       map.off("click", handleMapClick);
     };
   }, [handleMapClick]);
+
+  /**
+   * Render opponents' live cursors as ghost pointers, reconciling markers
+   * against the latest positions and removing any that have gone away.
+   */
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) return;
+
+    const markers = opponentMarkersRef.current;
+    const cursors = opponentCursors ?? [];
+    const seen = new Set<string>();
+
+    for (const c of cursors) {
+      seen.add(c.playerId);
+      const existing = markers.get(c.playerId);
+      if (existing) {
+        existing.setLngLat([c.lng, c.lat]);
+      } else {
+        const marker = new maplibregl.Marker({
+          element: createOpponentCursorElement(c.username, colorForId(c.playerId)),
+          anchor: "top-left",
+        })
+          .setLngLat([c.lng, c.lat])
+          .addTo(map);
+        markers.set(c.playerId, marker);
+      }
+    }
+
+    // Drop markers for opponents no longer present.
+    Array.from(markers.keys()).forEach((id) => {
+      if (!seen.has(id)) {
+        markers.get(id)?.remove();
+        markers.delete(id);
+      }
+    });
+  }, [opponentCursors]);
+
+  // Clean up opponent markers on unmount.
+  useEffect(() => {
+    const markers = opponentMarkersRef.current;
+    return () => {
+      markers.forEach((m) => m.remove());
+      markers.clear();
+    };
+  }, []);
 
   /**
    * Persistently highlight the Concordia buildings using their real OSM
@@ -353,8 +466,10 @@ export default function GuessMap({
       if (markerRef.current) {
         markerRef.current.remove();
       }
+      // Label the guess only in result mode (a labelled pin while still placing
+      // markers would be noisy and shift on every click).
       markerRef.current = new maplibregl.Marker({
-        element: createGuessPinElement(),
+        element: createGuessPinElement(showResult ? "Your Guess" : undefined),
         anchor: "bottom",
       })
         .setLngLat([guessedLocation.lng, guessedLocation.lat])
@@ -368,13 +483,21 @@ export default function GuessMap({
         actualMarkerRef.current.remove();
       }
       actualMarkerRef.current = new maplibregl.Marker({
-        element: createActualPinElement(),
+        element: createActualPinElement("Actual Location"),
         anchor: "bottom",
       })
         .setLngLat([actualLocation.lng, actualLocation.lat])
         .addTo(map);
     }
-  }, [showResult, guessedLocation, actualLocation]);
+    // Depend on primitive coords so streaming props (e.g. opponent cursors)
+    // re-rendering the parent doesn't keep recreating these markers.
+  }, [
+    showResult,
+    guessedLocation?.lat,
+    guessedLocation?.lng,
+    actualLocation?.lat,
+    actualLocation?.lng,
+  ]);
 
   /**
    * Draw line + add distance label + fit bounds when result is shown and both points exist
@@ -453,7 +576,16 @@ export default function GuessMap({
 
     if (map.isStyleLoaded()) addLineAndLabel();
     else map.once("load", addLineAndLabel);
-  }, [showResult, guessedLocation, actualLocation, distanceMeters]);
+    // Primitive deps: avoids re-running (and re-animating the distance) on every
+    // parent re-render caused by streaming props.
+  }, [
+    showResult,
+    guessedLocation?.lat,
+    guessedLocation?.lng,
+    actualLocation?.lat,
+    actualLocation?.lng,
+    distanceMeters,
+  ]);
 
 
   /**

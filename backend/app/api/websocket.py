@@ -88,6 +88,15 @@ async def leave_game(sid, data):
 
 
 @sio.event
+async def cursor_move(sid, data):
+    """Relay a player's live cursor position to everyone else in the game room."""
+    game_id = data.get("game_id")
+    if not game_id:
+        return
+    await sio.emit("cursor_update", data, room=f"game_{game_id}", skip_sid=sid)
+
+
+@sio.event
 async def ping(sid, data):
     await sio.emit("pong", {}, room=sid)
 

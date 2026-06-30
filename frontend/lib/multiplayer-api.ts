@@ -328,6 +328,22 @@ export class MultiplayerSocket {
     this.emit("player_ready", { lobby_code: lobbyCode, player_id: playerId });
   }
 
+  sendCursor(
+    gameId: string,
+    playerId: string,
+    lat: number,
+    lng: number,
+    username: string
+  ): void {
+    this.emit("cursor_move", {
+      game_id: gameId,
+      player_id: playerId,
+      username,
+      lat,
+      lng,
+    });
+  }
+
   ping(): void {
     this.emit("ping", {});
   }
