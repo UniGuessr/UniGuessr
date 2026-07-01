@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import maplibregl from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
+import { CAMPUSES, ALL_CAMPUS_IDS, type CampusId } from "@/config/buildings";
 
 type LocationPickerMapProps = {
   onLocationSelect: (lat: number, lng: number) => void;
@@ -37,6 +38,16 @@ export default function LocationPickerMap({
   const initRef = useRef(false);
   const onLocationSelectRef = useRef(onLocationSelect);
 
+  // Campus the map is framed on; the dropdown flies between known campuses so
+  // uploaders can quickly jump to the right area.
+  const [campus, setCampus] = useState<CampusId>(ALL_CAMPUS_IDS[0]);
+
+  const flyToCampus = (target: CampusId) => {
+    setCampus(target);
+    const view = CAMPUSES[target].view;
+    mapRef.current?.flyTo({ center: view.center, zoom: view.zoom, duration: 1200 });
+  };
+
   // Keep callback ref updated without triggering re-renders
   useEffect(() => {
     onLocationSelectRef.current = onLocationSelect;
@@ -48,11 +59,13 @@ export default function LocationPickerMap({
 
     initRef.current = true;
 
+    // Open on the same campus view the game uses (Concordia SGW by default).
+    const startView = CAMPUSES[ALL_CAMPUS_IDS[0]].view;
     mapRef.current = new maplibregl.Map({
       container: containerRef.current,
       style: "https://tiles.openfreemap.org/styles/bright",
-      center: [-73.57806418862965, 45.49554505697914], // Centered coordinate
-      zoom: 15,
+      center: startView.center,
+      zoom: startView.zoom,
       interactive: true,
       dragRotate: false,
       attributionControl: false,
@@ -108,38 +121,155 @@ export default function LocationPickerMap({
     };
   }, []); // No dependencies - initialize only once
 
+  /**
+   * Persistently highlight every campus's buildings using their real OSM
+   * footprints, drawn as exact polygon perimeters with a gentle pulse — same as
+   * the game map, so uploaders can see exactly which buildings count.
+   */
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) return;
+
+    const SOURCE_ID = "campus-highlight";
+    const FILL_ID = "campus-highlight-fill";
+    const OUTLINE_ID = "campus-highlight-outline";
+    const LABEL_SOURCE_ID = "campus-highlight-labels";
+    const LABEL_ID = "campus-highlight-label";
+
+    const ALL_BUILDINGS = ALL_CAMPUS_IDS.flatMap((id) => CAMPUSES[id].buildings);
+
+    let raf: number | null = null;
+
+    const footprints: GeoJSON.FeatureCollection = {
+      type: "FeatureCollection",
+      features: ALL_BUILDINGS.map((b) => ({
+        type: "Feature",
+        properties: { id: b.id },
+        geometry: { type: "Polygon", coordinates: [b.footprint] },
+      })),
+    };
+
+    const labels: GeoJSON.FeatureCollection = {
+      type: "FeatureCollection",
+      features: ALL_BUILDINGS.map((b) => ({
+        type: "Feature",
+        properties: { label: b.label },
+        geometry: { type: "Point", coordinates: [b.longitude, b.latitude] },
+      })),
+    };
+
+    const init = () => {
+      if (mapRef.current !== map || map.getSource(SOURCE_ID)) return;
+
+      map.addSource(SOURCE_ID, { type: "geojson", data: footprints });
+      map.addLayer({
+        id: FILL_ID,
+        type: "fill",
+        source: SOURCE_ID,
+        paint: { "fill-color": "#f97316", "fill-opacity": 0.1 },
+      });
+      map.addLayer({
+        id: OUTLINE_ID,
+        type: "line",
+        source: SOURCE_ID,
+        layout: { "line-join": "round", "line-cap": "round" },
+        paint: { "line-color": "#fb923c", "line-width": 3 },
+      });
+
+      // Reuse a font stack the base style already loads — the glyph server only
+      // serves the exact stacks the style references, so a custom one would 404.
+      const styleLayers = map.getStyle().layers ?? [];
+      const fontLayer = styleLayers.find(
+        (l) => l.type === "symbol" && (l.layout as any)?.["text-font"]
+      );
+      const textFont = (fontLayer?.layout as any)?.["text-font"] ?? ["Noto Sans Regular"];
+
+      map.addSource(LABEL_SOURCE_ID, { type: "geojson", data: labels });
+      map.addLayer({
+        id: LABEL_ID,
+        type: "symbol",
+        source: LABEL_SOURCE_ID,
+        layout: {
+          "text-field": ["get", "label"],
+          "text-size": 14,
+          "text-font": textFont,
+          "text-allow-overlap": true,
+        },
+        paint: {
+          "text-color": "#c2410c",
+          "text-halo-color": "#ffffff",
+          "text-halo-width": 1.5,
+        },
+      });
+
+      const start = performance.now();
+      const animate = (t: number) => {
+        if (mapRef.current !== map || !map.getLayer(OUTLINE_ID)) return;
+        const pulse = 0.5 + 0.5 * Math.sin(((t - start) / 1000) * 1.2);
+        map.setPaintProperty(OUTLINE_ID, "line-width", 2 + pulse * 1.5);
+        map.setPaintProperty(OUTLINE_ID, "line-opacity", 0.3 + pulse * 0.2);
+        map.setPaintProperty(FILL_ID, "fill-opacity", 0.05 + pulse * 0.07);
+        raf = requestAnimationFrame(animate);
+      };
+      raf = requestAnimationFrame(animate);
+    };
+
+    if (map.isStyleLoaded()) init();
+    else map.once("load", init);
+
+    return () => {
+      if (raf !== null) {
+        cancelAnimationFrame(raf);
+        raf = null;
+      }
+      // Bail if the map has been torn down (its style is gone after remove()).
+      if (mapRef.current !== map || !map.getStyle()) return;
+      if (map.getLayer(LABEL_ID)) map.removeLayer(LABEL_ID);
+      if (map.getLayer(OUTLINE_ID)) map.removeLayer(OUTLINE_ID);
+      if (map.getLayer(FILL_ID)) map.removeLayer(FILL_ID);
+      if (map.getSource(LABEL_SOURCE_ID)) map.removeSource(LABEL_SOURCE_ID);
+      if (map.getSource(SOURCE_ID)) map.removeSource(SOURCE_ID);
+    };
+  }, []);
+
   return (
-    <div className="space-y-3">
-      <div className="relative w-full h-[800px] rounded-xl overflow-hidden shadow-lg border-2 border-slate-200">
-        <div ref={containerRef} className="w-full h-full" />
-        {!selectedPosition && (
-          <div className="absolute bottom-27 left-1/2 -translate-x-1/2 bg-white/95 backdrop-blur px-4 py-2 rounded-full shadow-lg text-sm font-medium text-slate-700">
-            📍 Click on the map to select location
-          </div>
-        )}
-        {selectedPosition && (
-          <div className="absolute bottom-27 left-1/2 -translate-x-1/2 bg-blue-600/95 backdrop-blur px-4 py-2 rounded-full shadow-lg text-sm font-medium text-white">
-            📍 Drag the marker to adjust position
-          </div>
-        )}
+    <div className="relative w-full h-full rounded-xl overflow-hidden shadow-lg border-2 border-slate-200">
+      <div ref={containerRef} className="w-full h-full" />
+
+      {/* Campus selector (top-left): jump the map to a known campus. */}
+      <div className="absolute top-3 left-3 z-20">
+        <div className="flex items-center gap-1.5 rounded-lg bg-white/95 pl-2.5 pr-1.5 py-2 text-sm font-semibold text-slate-700 shadow-md ring-1 ring-slate-200 backdrop-blur">
+          <svg
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <path d="M21 10c0 7-9 12-9 12s-9-5-9-12a9 9 0 0 1 18 0z" />
+            <circle cx="12" cy="10" r="3" />
+          </svg>
+          <select
+            value={campus}
+            onChange={(e) => flyToCampus(e.target.value as CampusId)}
+            aria-label="Jump to campus"
+            className="cursor-pointer bg-transparent pr-1 font-semibold text-slate-700 focus:outline-none"
+          >
+            {ALL_CAMPUS_IDS.map((id) => (
+              <option key={id} value={id}>
+                {CAMPUSES[id].name}
+              </option>
+            ))}
+          </select>
+        </div>
       </div>
-      
-      {selectedPosition && (
-        <div className="bg-blue-50 border-2 border-blue-200 rounded-lg p-4">
-          <div className="flex items-center justify-between gap-4">
-            <div className="flex-1">
-              <p className="text-sm font-medium text-blue-700 mb-1">Selected Coordinates</p>
-              <div className="flex gap-4 text-sm text-blue-900">
-                <span>
-                  <strong>Lat:</strong> {selectedPosition.lat.toFixed(6)}
-                </span>
-                <span>
-                  <strong>Lng:</strong> {selectedPosition.lng.toFixed(6)}
-                </span>
-              </div>
-            </div>
-            <div className="text-2xl">✓</div>
-          </div>
+
+      {!selectedPosition && (
+        <div className="absolute bottom-6 left-1/2 -translate-x-1/2 bg-white/95 backdrop-blur px-4 py-2 rounded-full shadow-lg text-sm font-medium text-slate-700">
+          📍 Click on the map to select location
         </div>
       )}
     </div>

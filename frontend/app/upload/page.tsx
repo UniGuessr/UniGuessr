@@ -2,9 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { Button } from "@heroui/button";
-import { Card, CardBody } from "@heroui/card";
 import { Input } from "@heroui/input";
-import { Select, SelectItem } from "@heroui/select";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import { uploadLocation } from "@/lib/Api/Upload/Upload";
@@ -12,7 +10,7 @@ import { getUniversities, type University } from "@/lib/Api/University/Universit
 import LocationPickerMap from "@/components/location-picker-map";
 import FloorSelector from "@/components/Floor Selection/floor-selector";
 import { PixelButton } from "@/components/Button/pixel-button";
-import { findNearbyBuilding, BUILDINGS_WITH_FLOORS, getBuildingById, type Building} from "@/config/buildings";
+import { findNearbyBuilding, type Building } from "@/config/buildings";
 import { ArrowLeft, Upload, Trash2, CheckCircle2, MapPin } from "lucide-react"; 
 
 const DIFFICULTY_OPTIONS = [
@@ -134,7 +132,7 @@ export default function UploadLocationPage() {
   };
 
   return (
-      <main className="mx-auto p-4 lg:p-8 h-[calc(100vh-2rem)]">
+      <main className="relative z-10 mx-auto w-full max-w-[1500px] p-4 lg:p-8 h-[calc(100vh-2rem)]">
         <AnimatePresence mode="wait">
           {success ? (
             <motion.div 
@@ -172,116 +170,71 @@ export default function UploadLocationPage() {
                 </Link>
               </div>
 
-              <div className="grid lg:grid-cols-5 gap-8 flex-1 min-h-0">
+              <div className="grid lg:grid-cols-5 lg:grid-rows-1 gap-8 flex-1 min-h-0">
               
               {/* Left Column: Form (2/5) */}
               <div className="lg:col-span-2 space-y-5 overflow-y-auto pr-2 custom-scrollbar">
 
                 <form onSubmit={handleSubmit} id="location-form" className="space-y-5">
-                  <Input
-                    label="Name"
-                    variant="bordered"
-                    placeholder="e.g. Hall Building Mezzanine"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    classNames={{ label: "font-medium"}}
-                  />
+                  {/* Name */}
+                  <div className="space-y-3">
+                    <span className="text-xs font-mono uppercase tracking-wider text-white/40">Name</span>
+                    <Input
+                      placeholder="e.g. Hall Building Mezzanine"
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
+                      classNames={{
+                        inputWrapper:
+                          "bg-white/5 border border-white/10 hover:bg-white/10 data-[hover=true]:bg-white/10",
+                        input: "text-white placeholder:text-white/30",
+                      }}
+                    />
+                  </div>
 
-                  <Select
-                    label="Difficulty"
-                    variant="bordered"
-                    selectedKeys={[difficulty]}
-                    onChange={(e) => setDifficulty(e.target.value)}
-                  >
-                    {DIFFICULTY_OPTIONS.map((opt) => (
-                      <SelectItem key={opt.key}>{opt.label}</SelectItem>
-                    ))}
-                  </Select>
-
-                  <Select
-                    label="University"
-                    variant="bordered"
-                    placeholder="Select a university"
-                    selectedKeys={university ? [university] : []}
-                    onChange={(e) => setUniversity(e.target.value)}
-                  >
-                    {universities.map((u) => (
-                      <SelectItem key={u.name}>{u.name}</SelectItem>
-                    ))}
-                  </Select>
-
-                  {/* Building selection */}
-                  {nearbyBuilding && (
-                    <motion.div
-                      initial={{ opacity: 0, height: 0 }}
-                      animate={{ opacity: 1, height: "auto" }}
-                      className="p-4 bg-purple-50 rounded-xl border-2 border-purple-200 space-y-3"
-                    >
-                      <div className="flex items-start gap-2">
-                        <div className="text-2xl">🏢</div>
-                        <div className="flex-1">
-                          <p className="font-semibold text-purple-900 text-xs font-mono uppercase tracking-wider">
-                            {nearbyBuilding.name} Detected!
-                          </p>
-                          <p className="text-xs text-purple-700 mt-0.5 font-mono uppercase tracking-wider">
-                            Floor bonus available
-                          </p>
-                        </div>
-                      </div>
-
-                      <Select
-                        label="Building (Optional)"
-                        variant="bordered"
-                        placeholder="Select a building"
-                        selectedKeys={buildingId ? [buildingId] : []}
-                        onChange={(e) => {
-                          setBuildingId(e.target.value || null);
-                          setFloor(null);
-                        }}
-                        classNames={{ trigger: "bg-white" }}
-                      >
-                        {BUILDINGS_WITH_FLOORS.map((building) => (
-                          <SelectItem key={building.id}>{building.name}</SelectItem>
-                        ))}
-                      </Select>
-
-                      {buildingId && (
-                        <motion.div
-                          initial={{ opacity: 0, y: -10 }}
-                          animate={{ opacity: 1, y: 0 }}
+                  {/* Difficulty */}
+                  <div className="space-y-3">
+                    <span className="text-xs font-mono uppercase tracking-wider text-white/40">Difficulty</span>
+                    <div className="flex gap-2">
+                      {DIFFICULTY_OPTIONS.map((opt) => (
+                        <button
+                          key={opt.key}
+                          type="button"
+                          onClick={() => setDifficulty(opt.key)}
+                          className={`flex-1 py-3 rounded-lg text-sm font-mono uppercase tracking-wider font-bold transition-all cursor-pointer ${
+                            difficulty === opt.key
+                              ? "bg-white/10 text-white border border-white/20"
+                              : "bg-white/5 text-white/40 border border-transparent hover:bg-white/10 hover:text-white/60"
+                          }`}
                         >
-                          <label className="text-xs font-mono uppercase tracking-wider text-purple-900 mb-2 block">
-                            Floor Number (Optional)
-                          </label>
-                          <div className="grid grid-cols-5 gap-2">
-                            {getBuildingById(buildingId)?.floors.map((floorNum) => (
-                              <button
-                                key={floorNum}
-                                type="button"
-                                onClick={() => setFloor(floorNum === floor ? null : floorNum)}
-                                className={`
-                                  aspect-square rounded-lg font-bold text-sm transition-all
-                                  ${
-                                    floor === floorNum
-                                      ? "bg-purple-600 text-white shadow-lg scale-105"
-                                      : "bg-white text-slate-700 hover:bg-purple-100 border border-purple-200"
-                                  }
-                                `}
-                              >
-                                {floorNum}
-                              </button>
-                            ))}
-                          </div>
-                          <p className="text-xs text-purple-600 mt-2 font-mono uppercase tracking-wider">
-                            Correct floor = +20% bonus
-                          </p>
-                        </motion.div>
-                      )}
-                    </motion.div>
-                  )}
+                          {opt.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* University */}
+                  <div className="space-y-3">
+                    <span className="text-xs font-mono uppercase tracking-wider text-white/40">University</span>
+                    <div className="flex flex-wrap gap-2">
+                      {universities.map((u) => (
+                        <button
+                          key={u.name}
+                          type="button"
+                          onClick={() => setUniversity(u.name)}
+                          className={`flex-1 min-w-[120px] py-3 rounded-lg text-sm font-mono uppercase tracking-wider font-bold transition-all cursor-pointer ${
+                            university === u.name
+                              ? "bg-white/10 text-white border border-white/20"
+                              : "bg-white/5 text-white/40 border border-transparent hover:bg-white/10 hover:text-white/60"
+                          }`}
+                        >
+                          {u.name}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
 
                   <div className="space-y-2">
-                    <label className="text-xs text-orange-500 font-mono uppercase tracking-wider px-1">Location Image</label>
+                    <label className="text-xs text-white/40 font-mono uppercase tracking-wider">Location Image</label>
                     {imagePreview ? (
                       <div className="group relative rounded-xl overflow-hidden border-2 border-slate-100 shadow-sm">
                         <img src={imagePreview} alt="Preview" className="w-full h-[300px] object-cover transition-transform group-hover:scale-105" />
@@ -338,26 +291,24 @@ export default function UploadLocationPage() {
 
                 {/* Right Column: Map (3/5) */}
                 <div className="lg:col-span-3 min-h-[400px] relative">
-                  <Card className="h-full border-none">
-                    <div className="relative w-full h-full">
-                      <LocationPickerMap
-                        onLocationSelect={handleLocationSelect}
-                        initialLat={coordinates?.lat}
-                        initialLng={coordinates?.lng}
-                      />
-                      {/* Floor selector positioned over map */}
-                      {showFloorSelector && nearbyBuilding && (
-                        <div className="absolute top-4 right-4 z-50">
-                          <FloorSelector
-                            building={nearbyBuilding}
-                            selectedFloor={floor}
-                            onFloorSelect={setFloor}
-                            size="large"
-                          />
-                        </div>
-                      )}
-                    </div>
-                  </Card>
+                  <div className="relative w-full h-full max-h-[680px]">
+                    <LocationPickerMap
+                      onLocationSelect={handleLocationSelect}
+                      initialLat={coordinates?.lat}
+                      initialLng={coordinates?.lng}
+                    />
+                    {/* Floor selector positioned over map */}
+                    {showFloorSelector && nearbyBuilding && (
+                      <div className="absolute top-4 right-4 z-50">
+                        <FloorSelector
+                          building={nearbyBuilding}
+                          selectedFloor={floor}
+                          onFloorSelect={setFloor}
+                          size="large"
+                        />
+                      </div>
+                    )}
+                  </div>
                 </div>
 
               </div>
