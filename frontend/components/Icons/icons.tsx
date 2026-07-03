@@ -21,3 +21,48 @@ export const BitmapChevron =({ className, ...props }: { className?: string, prop
   )
 }
 
+export const TrophyIcon = ({ className, ...props }: IconSvgProps) => {
+  return (
+    <svg
+      width="20"
+      height="20"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+      {...props}
+    >
+      <path d="M6 4h12v5a6 6 0 0 1-12 0V4Z" />
+      <path d="M6 6H3v1a4 4 0 0 0 4 4" />
+      <path d="M18 6h3v1a4 4 0 0 1-4 4" />
+      <path d="M12 15v3" />
+      <path d="M8 21h8" />
+      <path d="M9 21v-1a3 3 0 0 1 6 0v1" />
+    </svg>
+  );
+};
+
+export const MapPinPlusIcon = ({ className, ...props }: IconSvgProps) => {
+  return (
+    <svg
+      width="20"
+      height="20"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+      {...props}
+    >
+      <path d="M12 21s7-6.2 7-11a7 7 0 0 0-14 0c0 4.8 7 11 7 11Z" />
+      <path d="M12 7v6" />
+      <path d="M9 10h6" />
+    </svg>
+  );
+};
+
