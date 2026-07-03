@@ -675,7 +675,7 @@ export default function MultiplayerGamePage({ params }: { params: Promise<{ id: 
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
             transition={{ duration: 0.4, ease: "easeInOut" }}
-            className="h-[calc(100vh-8rem)]"
+            className="relative z-[45] h-[calc(100vh-8rem)]"
           >
             {/* Header */}
             <div className="flex items-center justify-between mb-4">
@@ -849,7 +849,7 @@ export default function MultiplayerGamePage({ params }: { params: Promise<{ id: 
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
             transition={{ duration: 0.4, ease: "easeInOut" }}
-            className="h-[calc(100vh-3rem)]"
+            className="relative z-[45] h-[calc(100vh-3rem)]"
           >
             {/* Header */}
             <div className="flex items-center justify-between mb-4">

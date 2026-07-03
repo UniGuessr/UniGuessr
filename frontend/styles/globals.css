@@ -10,3 +10,209 @@
     --font-sans: "font", sans-serif;
     --font-mono: "monospace", monospace;
 }
+
+/* ---------------------------------------------------------------- */
+/* Arcade / CRT home theme                                          */
+/* ---------------------------------------------------------------- */
+:root {
+    --arcade-p1: #f97316;       /* orange — player 1 */
+    --arcade-p1-glow: #ff8c3a;
+    --arcade-p2: #22d3ee;       /* cyan — player 2 */
+    --arcade-p2-glow: #67e8f9;
+    --arcade-score: #4ade80;    /* phosphor green — digits only */
+    --arcade-line: rgba(255, 255, 255, 0.12);
+}
+
+/* Opaque cabinet ground — covers the global star field on the home page */
+.arcade-ground {
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    background: radial-gradient(120% 90% at 50% 0%, #16162a 0%, #0a0a12 45%, #05050a 100%);
+}
+
+/* Faint pixel grid, masked to the center */
+.arcade-grid {
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    background-image:
+        linear-gradient(rgba(120, 130, 200, 0.05) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(120, 130, 200, 0.05) 1px, transparent 1px);
+    background-size: 40px 40px;
+    -webkit-mask-image: radial-gradient(120% 90% at 50% 30%, #000 30%, transparent 80%);
+    mask-image: radial-gradient(120% 90% at 50% 30%, #000 30%, transparent 80%);
+}
+
+/* CRT scanlines + slow drifting bright band */
+.crt-scanlines {
+    position: fixed;
+    inset: 0;
+    z-index: 40;
+    pointer-events: none;
+    mix-blend-mode: multiply;
+    opacity: 0.7;
+    background: repeating-linear-gradient(
+        to bottom,
+        rgba(0, 0, 0, 0) 0px,
+        rgba(0, 0, 0, 0) 2px,
+        rgba(0, 0, 0, 0.28) 3px,
+        rgba(0, 0, 0, 0.28) 4px
+    );
+}
+.crt-scanlines::after {
+    content: "";
+    position: absolute;
+    inset: -50% 0;
+    height: 40%;
+    background: linear-gradient(rgba(255, 255, 255, 0) 0%, rgba(255, 255, 255, 0.05) 50%, rgba(255, 255, 255, 0) 100%);
+    animation: arcade-sweep 7s linear infinite;
+}
+
+.crt-vignette {
+    position: fixed;
+    inset: 0;
+    z-index: 41;
+    pointer-events: none;
+    background: radial-gradient(120% 100% at 50% 50%, rgba(0, 0, 0, 0) 55%, rgba(0, 0, 0, 0.55) 100%);
+}
+
+/* Neon glow around the split-flap title */
+.arcade-title-glow {
+    filter:
+        drop-shadow(0 0 12px rgba(249, 115, 22, 0.45))
+        drop-shadow(0 0 30px rgba(249, 115, 22, 0.22));
+}
+
+/* Blinking attract-mode line */
+.arcade-insert-coin {
+    letter-spacing: 0.42em;
+    color: var(--arcade-p1);
+    text-shadow: 0 0 12px rgba(249, 115, 22, 0.6);
+    animation: arcade-blink 1.1s steps(2, jump-none) infinite;
+}
+
+/* Chunky pixel start buttons (1P / 2P) */
+.arcade-btn {
+    --c: var(--arcade-p1);
+    --c-light: var(--arcade-p1-glow);
+    position: relative;
+    display: inline-flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 1.15rem 2.4rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    color: #fff;
+    background: var(--c);
+    text-decoration: none;
+    image-rendering: pixelated;
+    border: 4px solid rgba(0, 0, 0, 0.55);
+    box-shadow:
+        inset 0 4px 0 0 rgba(255, 255, 255, 0.35),
+        inset 0 -4px 0 0 rgba(0, 0, 0, 0.35),
+        inset 4px 0 0 0 rgba(255, 255, 255, 0.2),
+        inset -4px 0 0 0 rgba(0, 0, 0, 0.25),
+        4px 4px 0 0 rgba(0, 0, 0, 0.5),
+        0 0 26px -2px var(--c-light);
+    transition: transform 0.05s, box-shadow 0.15s;
+}
+.arcade-btn:hover {
+    box-shadow:
+        inset 0 4px 0 0 rgba(255, 255, 255, 0.4),
+        inset 0 -4px 0 0 rgba(0, 0, 0, 0.35),
+        inset 4px 0 0 0 rgba(255, 255, 255, 0.25),
+        inset -4px 0 0 0 rgba(0, 0, 0, 0.25),
+        4px 4px 0 0 rgba(0, 0, 0, 0.5),
+        0 0 40px 2px var(--c-light);
+}
+.arcade-btn:active {
+    transform: translateY(4px);
+}
+.arcade-btn--p2 {
+    --c: var(--arcade-p2);
+    --c-light: var(--arcade-p2-glow);
+    color: #04222a;
+}
+.arcade-btn .tag {
+    font-size: 0.7rem;
+    letter-spacing: 0.22em;
+    opacity: 0.9;
+    background: rgba(0, 0, 0, 0.28);
+    padding: 0.15rem 0.6rem;
+}
+.arcade-btn .label {
+    font-size: 1.25rem;
+}
+
+/* Secondary menu items (High Scores / Add a Stage) */
+.arcade-menu-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.55rem;
+    padding: 0.7rem 1.2rem;
+    color: #8a88a8;
+    text-decoration: none;
+    border: 2px solid var(--arcade-line);
+    background: rgba(255, 255, 255, 0.03);
+    transition: color 0.15s, border-color 0.15s, background 0.15s;
+}
+.arcade-menu-item:hover {
+    color: var(--arcade-p1);
+    border-color: var(--arcade-p1);
+    background: rgba(249, 115, 22, 0.08);
+}
+
+/* Bottom attract-mode ticker */
+.arcade-ticker {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 42;
+    overflow: hidden;
+    padding: 0.55rem 0;
+    border-top: 2px solid var(--arcade-line);
+    background: rgba(5, 5, 10, 0.6);
+    backdrop-filter: blur(2px);
+    color: #8a88a8;
+    letter-spacing: 0.24em;
+    text-transform: uppercase;
+}
+.arcade-ticker span {
+    display: inline-block;
+    white-space: nowrap;
+    padding-left: 100%;
+    animation: arcade-scroll 22s linear infinite;
+}
+.arcade-ticker b {
+    color: var(--arcade-score);
+    font-variant-numeric: tabular-nums;
+    font-weight: 700;
+}
+
+@keyframes arcade-sweep {
+    from { transform: translateY(0); }
+    to { transform: translateY(250%); }
+}
+@keyframes arcade-blink {
+    0%, 49% { opacity: 1; }
+    50%, 100% { opacity: 0.15; }
+}
+@keyframes arcade-scroll {
+    to { transform: translateX(-100%); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .crt-scanlines::after,
+    .arcade-insert-coin,
+    .arcade-ticker span {
+        animation: none;
+    }
+    .arcade-insert-coin { opacity: 1; }
+    .arcade-ticker span { padding-left: 0; }
+}

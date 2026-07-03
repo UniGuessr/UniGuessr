@@ -41,41 +41,56 @@ export default function FloorSelector({
       style={{ width: isLarge ? 300 : 250 }}
     >
       <div
-        className="overflow-hidden bg-slate-900/95 backdrop-blur-sm border-4 border-slate-950"
+        className="relative overflow-hidden bg-[#0a0a12]/95 backdrop-blur-sm border-4 border-black"
         style={{
+          imageRendering: "pixelated",
           boxShadow:
-            "4px 4px 0 0 rgba(0,0,0,0.5), inset 0 2px 0 0 rgba(255,255,255,0.06)",
+            "4px 4px 0 0 rgba(0,0,0,0.6), 0 0 26px -4px rgba(249,115,22,0.4), inset 0 2px 0 0 rgba(255,255,255,0.06)",
         }}
       >
-        {/* Header */}
-        <div className="px-3 py-2 bg-gradient-to-r from-indigo-600 to-purple-600 border-b-4 border-slate-950">
-          <h3
-            className={clsx(
-              "font-bold uppercase tracking-wider text-white truncate",
-              isLarge ? "text-sm" : "text-xs"
-            )}
-          >
-            {building.name}
-          </h3>
+        {/* Header — arcade marquee strip */}
+        <div className="relative px-3 py-2 bg-gradient-to-b from-orange-500 to-orange-600 border-b-4 border-black">
+          <div className="flex items-center gap-2">
+            {/* Power LED */}
+            <motion.span
+              aria-hidden
+              className="h-2 w-2 shrink-0 rounded-full bg-cyan-300"
+              style={{ boxShadow: "0 0 8px 1px rgba(103,232,249,0.9)" }}
+              animate={{ opacity: [1, 0.35, 1] }}
+              transition={{ duration: 1.6, repeat: Infinity, ease: "easeInOut" }}
+            />
+            <h3
+              className={clsx(
+                "font-bold uppercase tracking-wider text-white truncate",
+                isLarge ? "text-sm" : "text-xs"
+              )}
+              style={{ textShadow: "0 1px 0 rgba(0,0,0,0.4)" }}
+            >
+              {building.name}
+            </h3>
+          </div>
           <p
             className={clsx(
-              "uppercase tracking-wider text-indigo-200",
+              "uppercase tracking-[0.2em] text-orange-950/80 font-bold",
               isLarge ? "text-[10px]" : "text-[9px]"
             )}
           >
-            Select your floor
+            &#9668; Select floor &#9658;
           </p>
         </div>
 
-        <div className={isLarge ? "p-3" : "p-2.5"}>
-          {/* Digital floor readout */}
+        <div className={clsx("relative", isLarge ? "p-3" : "p-2.5")}>
+          {/* Digital floor readout — phosphor CRT segment display */}
           <div
-            className="flex items-center justify-center gap-2 mb-3 border-2 border-slate-700 bg-black py-2"
-            style={{ boxShadow: "inset 0 0 10px rgba(0,0,0,0.9)" }}
+            className="flex items-center justify-center gap-2 mb-3 border-2 border-[#4ade80]/25 bg-black py-2"
+            style={{
+              boxShadow:
+                "inset 0 0 12px rgba(0,0,0,0.95), inset 0 0 10px rgba(74,222,128,0.08)",
+            }}
           >
             <span
               className={clsx(
-                "text-emerald-500/40",
+                "text-[#4ade80]/40 tracking-widest",
                 isLarge ? "text-base" : "text-sm"
               )}
             >
@@ -92,11 +107,11 @@ export default function FloorSelector({
                   className={clsx(
                     "absolute inset-0 flex items-center justify-center font-bold tabular-nums",
                     isLarge ? "text-2xl" : "text-xl",
-                    selectedFloor !== null ? "text-emerald-400" : "text-emerald-700"
+                    selectedFloor !== null ? "text-[#4ade80]" : "text-[#4ade80]/30"
                   )}
                   style={
                     selectedFloor !== null
-                      ? { textShadow: "0 0 10px rgba(52,211,153,0.8)" }
+                      ? { textShadow: "0 0 12px rgba(74,222,128,0.9)" }
                       : undefined
                   }
                 >
@@ -106,7 +121,7 @@ export default function FloorSelector({
             </div>
           </div>
 
-          {/* Elevator button grid */}
+          {/* Illuminated arcade-button floor grid */}
           <div
             className={clsx("grid mx-auto w-max", isLarge ? "gap-3" : "gap-2.5")}
             style={{ gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))` }}
@@ -127,37 +142,46 @@ export default function FloorSelector({
                     damping: 22,
                   }}
                   whileHover={{ scale: 1.08 }}
-                  whileTap={{ scale: 0.9 }}
+                  whileTap={{ scale: 0.9, y: 2 }}
                   className={clsx(
                     "relative rounded-full flex items-center justify-center font-bold border-2 transition-colors",
                     isLarge ? "h-12 w-12 text-lg" : "h-11 w-11 text-base",
                     active
-                      ? "bg-indigo-500 text-white border-indigo-200"
-                      : "bg-slate-800 text-slate-300 border-slate-600 hover:bg-slate-700 hover:text-white hover:border-slate-500"
+                      ? "bg-orange-500 text-white border-orange-200"
+                      : "bg-[#161622] text-orange-200/70 border-black hover:bg-[#20202f] hover:text-orange-200"
                   )}
                   style={{
                     boxShadow: active
-                      ? "0 0 14px rgba(99,102,241,0.9), inset 0 0 6px rgba(255,255,255,0.35)"
-                      : "inset 0 -2px 4px rgba(0,0,0,0.4)",
+                      ? "0 0 16px rgba(249,115,22,0.9), inset 0 0 8px rgba(255,255,255,0.5), inset 0 -2px 0 rgba(0,0,0,0.35)"
+                      : "inset 0 -3px 0 rgba(0,0,0,0.6), inset 0 2px 2px rgba(255,255,255,0.05)",
                   }}
                 >
-                  {floor}
+                  {/* Button top-gloss highlight */}
+                  <span
+                    aria-hidden
+                    className="pointer-events-none absolute inset-x-1.5 top-1 h-1/3 rounded-full"
+                    style={{
+                      background:
+                        "linear-gradient(rgba(255,255,255,0.35), transparent)",
+                      opacity: active ? 0.9 : 0.25,
+                    }}
+                  />
+                  <span className="relative">{floor}</span>
                 </motion.button>
               );
             })}
           </div>
 
-          {/* Bonus hint */}
+          {/* Bonus hint — pixel chip */}
           <div
             className={clsx(
-              "mt-3 flex items-center justify-center gap-1.5 border-2 border-indigo-500/40 bg-indigo-500/10",
+              "mt-3 flex items-center justify-center gap-1.5 border-2 border-orange-500/40 bg-orange-500/10",
               isLarge ? "py-2" : "py-1.5"
             )}
           >
-            <span className={isLarge ? "text-xs" : "text-[10px]"}>▸</span>
             <span
               className={clsx(
-                "uppercase tracking-wider text-indigo-300 font-bold",
+                "uppercase tracking-[0.15em] text-orange-300 font-bold",
                 isLarge ? "text-[11px]" : "text-[9px]"
               )}
             >
@@ -165,14 +189,27 @@ export default function FloorSelector({
             </span>
             <span
               className={clsx(
-                "font-bold text-emerald-400",
+                "font-bold text-[#4ade80]",
                 isLarge ? "text-xs" : "text-[10px]"
               )}
+              style={{ textShadow: "0 0 8px rgba(74,222,128,0.6)" }}
             >
               +20%
             </span>
           </div>
         </div>
+
+        {/* CRT scanline sheen over the whole panel */}
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-0"
+          style={{
+            background:
+              "repeating-linear-gradient(to bottom, rgba(0,0,0,0) 0px, rgba(0,0,0,0) 2px, rgba(0,0,0,0.22) 3px, rgba(0,0,0,0.22) 4px)",
+            mixBlendMode: "multiply",
+            opacity: 0.5,
+          }}
+        />
       </div>
     </motion.div>
   );
