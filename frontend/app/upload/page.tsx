@@ -132,7 +132,7 @@ export default function UploadLocationPage() {
   };
 
   return (
-      <main className="relative z-10 mx-auto w-full max-w-[1500px] p-4 lg:p-8 h-[calc(100vh-2rem)]">
+      <main className="relative mx-auto w-full max-w-[1500px] p-4 lg:p-8 h-[calc(100vh-2rem)]">
         <AnimatePresence mode="wait">
           {success ? (
             <motion.div 
@@ -160,7 +160,7 @@ export default function UploadLocationPage() {
               <div className="flex items-center justify-between">
                 <div>
                   <h1 className="text-xl font-bold font-mono uppercase tracking-wider">Add New Location</h1>
-                  <p className="text-orange-500 text-xs font-mono uppercase tracking-wider mt-1">Help others explore Concordia’s campus.</p>
+                  <p className="text-orange-500 text-xs font-mono uppercase tracking-wider mt-1">Help others explore your campus.</p>
                 </div>
                 <Link href="/">
                   <PixelButton variant="secondary" size="sm" className="flex items-center gap-2">
@@ -289,8 +289,9 @@ export default function UploadLocationPage() {
                 </form>
                 </div>
 
-                {/* Right Column: Map (3/5) */}
-                <div className="lg:col-span-3 min-h-[400px] relative">
+                {/* Right Column: Map (3/5) — lifted above the global CRT
+                    scanline/vignette overlays so the map reads clearly. */}
+                <div className="lg:col-span-3 min-h-[400px] relative z-[45]">
                   <div className="relative w-full h-full max-h-[680px]">
                     <LocationPickerMap
                       onLocationSelect={handleLocationSelect}
