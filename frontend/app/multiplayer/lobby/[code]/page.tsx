@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Link } from "@heroui/link";
 import { motion, AnimatePresence } from "framer-motion";
 import { PixelButton } from "@/components/Button/pixel-button";
+import { useArcadeAudio } from "@/components/audio/arcade-audio";
 import {
   getLobby,
   joinLobby,
@@ -20,7 +21,8 @@ export default function LobbyPage({ params }: { params: Promise<{ code: string }
   const searchParams = useSearchParams();
   const resolvedParams = use(params);
   const lobbyCode = resolvedParams.code.toUpperCase();
-  
+  const audio = useArcadeAudio();
+
   const [lobby, setLobby] = useState<Lobby | null>(null);
   const [playerId, setPlayerId] = useState<string | null>(
     searchParams.get("player_id")
@@ -127,6 +129,7 @@ export default function LobbyPage({ params }: { params: Promise<{ code: string }
       return;
     }
     
+    audio?.playSelect();
     try {
       console.log("Toggling ready for player:", playerId);
       const updatedLobby = await toggleReady(lobbyCode, playerId);
@@ -155,6 +158,7 @@ export default function LobbyPage({ params }: { params: Promise<{ code: string }
       return;
     }
 
+    audio?.playStart();
     setStarting(true);
     try {
       console.log("Starting game for lobby:", lobbyCode);

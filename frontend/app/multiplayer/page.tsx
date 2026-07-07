@@ -6,6 +6,7 @@ import { Input } from "@heroui/input";
 import { Link } from "@heroui/link";
 import { motion, AnimatePresence } from "framer-motion";
 import { PixelButton } from "@/components/Button/pixel-button";
+import { useArcadeAudio } from "@/components/audio/arcade-audio";
 import {
   createLobby,
   joinMatchmaking,
@@ -23,6 +24,7 @@ const ROUND_OPTIONS = [3, 5, 10];
 
 export default function MultiplayerPage() {
   const router = useRouter();
+  const audio = useArcadeAudio();
   const [username, setUsername] = useState("");
   const [rounds, setRounds] = useState(5);
   const [difficulty, setDifficulty] = useState<"easy" | "normal" | "hard">("easy");
@@ -37,6 +39,7 @@ export default function MultiplayerPage() {
       return;
     }
 
+    audio?.playSelect();
     setLoading(true);
     setError(null);
 
@@ -59,6 +62,7 @@ export default function MultiplayerPage() {
       setError("Please enter a lobby code");
       return;
     }
+    audio?.playSelect();
     console.log("Joining lobby:", lobbyCode.toUpperCase());
     router.push(`/multiplayer/lobby/${lobbyCode.toUpperCase()}?username=${encodeURIComponent(username)}`);
   };
@@ -69,6 +73,7 @@ export default function MultiplayerPage() {
       return;
     }
 
+    audio?.playSelect();
     setLoading(true);
     setError(null);
 

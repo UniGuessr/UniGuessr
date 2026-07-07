@@ -1,77 +1,173 @@
 "use client";
 
-import { Link } from "@heroui/link";
-import { PixelButton } from "@/components/Button/pixel-button";
+import { Fragment, useEffect, useState } from "react";
+import Link from "next/link";
 import { TrophyIcon, MapPinPlusIcon } from "@/components/Icons/icons";
+import { SplitFlapText } from "@/components/Title/split-text";
 import {
-  SplitFlapText,
-  SplitFlapAudioProvider,
-} from "@/components/Title/split-text";
+  useArcadeAudio,
+  ArcadeSoundToggle,
+} from "@/components/audio/arcade-audio";
+import { getLeaderboardHighlights, type LeaderboardEntry } from "@/lib/api";
+
+function ScoreTicker() {
+  const [top, setTop] = useState<LeaderboardEntry[]>([]);
+  const [recent, setRecent] = useState<LeaderboardEntry[]>([]);
+
+  useEffect(() => {
+    let active = true;
+    getLeaderboardHighlights(5, 3)
+      .then((data) => {
+        if (!active) return;
+        setTop(data.top);
+        setRecent(data.recent);
+      })
+      .catch(() => {
+        /* keep the fallback attract-mode copy on error */
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  const hasData = top.length > 0 || recent.length > 0;
+
+  return (
+    <div className="arcade-ticker font-mono text-[0.68rem]" aria-hidden="true">
+      {hasData ? (
+        <span>
+          {top.length > 0 && (
+            <>
+              High Scores &#8226;{" "}
+              {top.map((entry, i) => (
+                <Fragment key={entry.id}>
+                  {i + 1}. {entry.username} &#8212;{" "}
+                  <b>{entry.score.toLocaleString()}</b> &#8226;{" "}
+                </Fragment>
+              ))}
+            </>
+          )}
+          {recent.length > 0 && (
+            <>
+              Latest &#8226;{" "}
+              {recent.map((entry) => (
+                <Fragment key={entry.id}>
+                  {entry.username} &#8212;{" "}
+                  <b>{entry.score.toLocaleString()}</b> &#8226;{" "}
+                </Fragment>
+              ))}
+            </>
+          )}
+          Press 1P or 2P to start &#8226;
+        </span>
+      ) : (
+        <span>
+          Now playing &#8226; Hall Building lobby &#8212; <b>4,820 pts</b>{" "}
+          &#8226; McGill Arts quad &#8212; <b>5,000 pts</b> &#8226; Webster
+          Library &#8212; <b>3,975 pts</b> &#8226; Press 1P or 2P to start
+          &#8226;
+        </span>
+      )}
+    </div>
+  );
+}
 
 export default function Home() {
+  const audio = useArcadeAudio();
+
   return (
-    <main className="relative overflow-hidden">
+    <>
+      {/* Cabinet screen (ground + scanlines + vignette) is provided globally by the layout */}
+
+      {/* Cabinet volume knob */}
+      <ArcadeSoundToggle className="fixed right-5 top-5 z-[50]" />
+
       {/* Foreground UI */}
-      <div className="relative z-[2] flex flex-col items-center justify-center px-6">
-        <div className="flex flex-col items-center gap-10 text-center mt-50">
-          {/* Title */}
-          <div className="space-y-3">
-            {/* Stats (eyebrow) */}
-            <div className="flex items-center justify-center gap-6 text-xs text-white/40 font-mono uppercase tracking-wider">
-              <span>100+ locations</span>
-              <span className="h-1 w-1 rounded-full bg-white/30" />
-              <span>2 campuses</span>
-            </div>
-
-            <SplitFlapAudioProvider>
-              <SplitFlapText
-                text="UNIGUESSR"
-                speed={80}
-                fontSize="8rem"
-                transparent
-                highlightFrom={3}
-                highlightColor="#f97316"
-              />
-            </SplitFlapAudioProvider>
-          </div>
-
-          {/* Game Mode Selection */}
-          <div className="w-full flex flex-col items-center gap-5 sm:flex-row sm:justify-center sm:gap-10">
-            <PixelButton href="/single-player" size="lg" variant="secondary">
-              Single Player
-            </PixelButton>
-            <PixelButton
-              href="/multiplayer"
-              size="lg"
-              variant="secondary"
-            >
-              Multiplayer
-            </PixelButton>
-          </div>
-
-          {/* Secondary actions */}
-          <div className="inline-grid grid-cols-2 items-stretch rounded-none border-2 border-white/25 bg-white/5 text-xs font-mono uppercase tracking-wider divide-x-2 divide-white/25">
-            <Link
-              href="/leaderboard"
-              aria-label="Leaderboard"
-              title="Leaderboard"
-              className="flex items-center justify-center gap-2 px-5 py-2.5 text-white/60 leading-none transition-colors hover:bg-orange-400/10 hover:text-orange-400"
-            >
-              <TrophyIcon className="h-6 w-6 shrink-0 text-orange-400/90" />
-              <span>Leaderboard</span>
-            </Link>
-            <Link
-              href="/upload"
-              aria-label="Submit a Location"
-              title="Submit a Location"
-              className="flex items-center justify-center gap-2 px-5 py-2.5 text-white/60 leading-none transition-colors hover:bg-orange-400/10 hover:text-orange-400"
-            >
-              <MapPinPlusIcon className="h-6 w-6 shrink-0 text-orange-400/90" />
-              <span>Submit a Location</span>
-            </Link>
-          </div>
+      <main className="relative z-[2] flex min-h-[calc(100vh-1.5rem)] flex-col items-center justify-center gap-10 px-4 pb-16 text-center">
+        {/* Stats (eyebrow) */}
+        <div className="flex items-center justify-center gap-4 font-mono text-xs uppercase tracking-[0.28em] text-white/40">
+          
+          <span>
+            <span className="text-[#4ade80]">100+</span> stages
+          </span>
+          <span className="h-1 w-1 rounded-full bg-orange-500 shadow-[0_0_8px_#f97316]" />
+          <span>
+            <span className="text-[#4ade80]">2</span> campuses
+          </span>
+          <span className="h-1 w-1 rounded-full bg-orange-500 shadow-[0_0_8px_#f97316]" />
+                    <span>
+            <span className="text-[#4ade80]">LIVE</span> multiplayer
+          </span>
         </div>
-      </div>
-    </main>
+
+        {/* Title */}
+        <div className="arcade-title-glow">
+          <SplitFlapText
+            text="UNIGUESSR"
+            speed={80}
+            fontSize="8rem"
+            transparent
+            highlightFrom={3}
+            highlightColor="#f97316"
+          />
+        </div>
+
+        {/* Attract-mode line */}
+        <p className="arcade-insert-coin font-mono text-sm uppercase">
+          &#9668; SELECT GAMEMODE &#9658;
+        </p>
+
+        {/* Game Mode Selection — 1P / 2P start */}
+        <div className="flex flex-wrap items-stretch justify-center gap-8">
+          <Link
+            href="/single-player"
+            className="arcade-btn font-mono"
+            onClick={() => audio?.playStart()}
+            onMouseEnter={() => audio?.playSelect()}
+          >
+            <span className="tag">1P</span>
+            <span className="label">Single Player</span>
+          </Link>
+          <Link
+            href="/multiplayer"
+            className="arcade-btn arcade-btn--p2 font-mono"
+            onClick={() => audio?.playStart()}
+            onMouseEnter={() => audio?.playSelect()}
+          >
+            <span className="tag">2P</span>
+            <span className="label">Multiplayer</span>
+          </Link>
+        </div>
+
+        {/* Secondary actions */}
+        <div className="flex flex-wrap items-center justify-center gap-4 font-mono text-xs uppercase tracking-[0.2em]">
+          <Link
+            href="/leaderboard"
+            aria-label="High Scores"
+            title="High Scores"
+            className="arcade-menu-item"
+            onClick={() => audio?.playSelect()}
+            onMouseEnter={() => audio?.playSelect()}
+          >
+            <TrophyIcon className="h-4 w-4" />
+            <span>High Scores</span>
+          </Link>
+          <Link
+            href="/upload"
+            aria-label="Add a Stage"
+            title="Add a Stage"
+            className="arcade-menu-item"
+            onClick={() => audio?.playSelect()}
+            onMouseEnter={() => audio?.playSelect()}
+          >
+            <MapPinPlusIcon className="h-4 w-4" />
+            <span>Add a Stage</span>
+          </Link>
+        </div>
+      </main>
+
+      {/* Attract-mode ticker — real top scores + latest plays */}
+      <ScoreTicker />
+    </>
   );
 }

@@ -1,7 +1,7 @@
 import "@/styles/globals.css";
 import { Metadata, Viewport } from "next";
 import clsx from "clsx";
-import { StarField } from "@/components/Background/background";
+import { ArcadeBackground } from "@/components/Background/crt-arcade";
 import { Providers } from "./providers";
 import { siteConfig } from "@/config/site";
 import { fontSans } from "@/config/fonts";
@@ -34,7 +34,7 @@ export default function RootLayout({
       >
         <Providers themeProps={{ attribute: "class", forcedTheme: "dark" }}>
           <div>
-            <StarField/> 
+            <ArcadeBackground />
             <main className="mx-auto pt-6 px-6 flex-grow">{children}</main>
           </div>
         </Providers>
