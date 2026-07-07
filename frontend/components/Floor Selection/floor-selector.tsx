@@ -3,6 +3,7 @@
 import { motion, AnimatePresence } from "framer-motion";
 import clsx from "clsx";
 import type { Building } from "@/config/buildings";
+import { useArcadeAudio } from "@/components/audio/arcade-audio";
 
 type FloorSelectorProps = {
   building: Building;
@@ -19,7 +20,10 @@ export default function FloorSelector({
   size = "default",
   className,
 }: FloorSelectorProps) {
+  const audio = useArcadeAudio();
+
   const handleFloorClick = (floor: number) => {
+    audio?.playBoop();
     // Toggle: clicking the lit floor turns it off again.
     onFloorSelect(selectedFloor === floor ? null : floor);
   };

@@ -9,6 +9,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import GuessMap from "@/components/guess-map";
 import { PixelButton } from "@/components/Button/pixel-button";
 import FloorSelector from "@/components/Floor Selection/floor-selector";
+import { useArcadeAudio, ArcadeSoundToggle } from "@/components/audio/arcade-audio";
 import { findNearbyBuilding, type Building, type University } from "@/config/buildings";
 import {
   createSession,
@@ -35,6 +36,8 @@ const UNIVERSITY_OPTIONS: { key: University | null; label: string }[] = [
 ];
 
 export default function SinglePlayerPage() {
+  const audio = useArcadeAudio();
+
   // Setup state
   const [rounds, setRounds] = useState<number>(5);
   const [timerDuration, setTimerDuration] = useState<number>(20);
@@ -71,6 +74,9 @@ export default function SinglePlayerPage() {
   const [roundTimer, setRoundTimer] = useState(20);
   const roundTimerRef = useRef<NodeJS.Timeout | null>(null);
   const timeUpHandledRef = useRef(false);
+  // Last whole second we played a low-timer tick for (avoids retriggering on
+  // every 100ms tick of the round timer).
+  const lastTickSecondRef = useRef<number | null>(null);
 
   // Prefetched next-round location (fetched in background during result screen)
   const prefetchedLocationRef = useRef<CurrentLocation | null>(null);
@@ -86,8 +92,29 @@ export default function SinglePlayerPage() {
       setShowMap(true);
       setRoundTimer(timerDuration); // Start round timer when map appears
       timeUpHandledRef.current = false; // Reset for new round
+      audio?.playConfirm(); // "Go!" cue as the map slides in
     }
   }, [gameState, mapCountdown, showMap, timerDuration]);
+
+  // Subtle tick on each map-reveal countdown number (3… 2… 1…).
+  useEffect(() => {
+    if (gameState === "playing" && !showMap && mapCountdown > 0) {
+      audio?.playTick();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mapCountdown, gameState, showMap]);
+
+  // Tense one-per-second tick during the final 5 seconds of the round timer.
+  useEffect(() => {
+    if (gameState === "playing" && showMap && roundTimer > 0 && roundTimer <= 5) {
+      const sec = Math.ceil(roundTimer);
+      if (lastTickSecondRef.current !== sec) {
+        lastTickSecondRef.current = sec;
+        audio?.playTick();
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [roundTimer, gameState, showMap]);
 
   // Round timer countdown effect - updates every 100ms for smooth animation
   useEffect(() => {
@@ -104,6 +131,14 @@ export default function SinglePlayerPage() {
       handleTimeUp();
     }
   }, [gameState, showMap, roundTimer, loading]);
+
+  // Counter tally when the round score is revealed.
+  useEffect(() => {
+    if (gameState === "result") {
+      audio?.playScore();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [gameState]);
 
   const handleTimeUp = async () => {
     if (!session || !currentLocation) return;
@@ -172,12 +207,14 @@ export default function SinglePlayerPage() {
   };
 
   const startGame = async () => {
+    audio?.playStart();
     setLoading(true);
     setError(null);
     setMapCountdown(3);
     setShowMap(false);
     setRoundTimer(timerDuration);
     timeUpHandledRef.current = false;
+    lastTickSecondRef.current = null;
 
     try {
       const newSession = await createSession({ rounds, difficulty: "normal", university });
@@ -196,7 +233,7 @@ export default function SinglePlayerPage() {
 
   const handleGuessSelect = useCallback((lat: number, lng: number) => {
     setSelectedGuess({ lat, lng });
-    
+
     // Check if pin is near a building with floors - show selector immediately
     const building = findNearbyBuilding(lat, lng);
     if (building) {
@@ -213,6 +250,7 @@ export default function SinglePlayerPage() {
   const submitCurrentGuess = async () => {
     if (!session || !selectedGuess) return;
 
+    audio?.playConfirm();
     // Submit with selected floor if available, otherwise without floor
     await finalizeGuessSubmission(selectedFloor);
   };
@@ -263,12 +301,14 @@ export default function SinglePlayerPage() {
       return;
     }
 
+    audio?.playSelect();
     setLoading(true);
     setError(null);
     setMapCountdown(3);
     setShowMap(false);
     setRoundTimer(timerDuration);
     timeUpHandledRef.current = false;
+    lastTickSecondRef.current = null;
 
     try {
       // Use the prefetched location if it arrived during the result screen,
@@ -495,9 +535,12 @@ export default function SinglePlayerPage() {
                   Score: {roundScores.reduce((a, b) => a + b, 0).toLocaleString()}
                 </span>
               </div>
-              <PixelButton variant="danger" size="sm" onClick={resetGame}>
-                Quit Game
-              </PixelButton>
+              <div className="flex items-center gap-3">
+                <ArcadeSoundToggle />
+                <PixelButton variant="danger" size="sm" onClick={resetGame}>
+                  Quit Game
+                </PixelButton>
+              </div>
             </div>
 
             {/* Round Timer */}
@@ -668,9 +711,12 @@ export default function SinglePlayerPage() {
               <span className="px-3 py-1 bg-indigo-100 text-indigo-700 rounded-full font-semibold text-xs font-mono uppercase tracking-wider">
                 Round {currentLocation.round} / {currentLocation.total_rounds}
               </span>
-              <span className="text-orange-500 font-medium font-mono uppercase tracking-wider">
-                Total Score: {guessResult.total_score.toLocaleString()}
-              </span>
+              <div className="flex items-center gap-3">
+                <ArcadeSoundToggle />
+                <span className="text-orange-500 font-medium font-mono uppercase tracking-wider">
+                  Total Score: {guessResult.total_score.toLocaleString()}
+                </span>
+              </div>
             </div>
 
             {/* Result content - consistent height and gap with playing screen */}

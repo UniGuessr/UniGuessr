@@ -2,15 +2,21 @@
 
 import Link from "next/link";
 import { TrophyIcon, MapPinPlusIcon } from "@/components/Icons/icons";
+import { SplitFlapText } from "@/components/Title/split-text";
 import {
-  SplitFlapText,
-  SplitFlapAudioProvider,
-} from "@/components/Title/split-text";
+  useArcadeAudio,
+  ArcadeSoundToggle,
+} from "@/components/audio/arcade-audio";
 
 export default function Home() {
+  const audio = useArcadeAudio();
+
   return (
     <>
       {/* Cabinet screen (ground + scanlines + vignette) is provided globally by the layout */}
+
+      {/* Cabinet volume knob */}
+      <ArcadeSoundToggle className="fixed right-5 top-5 z-[50]" />
 
       {/* Foreground UI */}
       <main className="relative z-[2] flex min-h-[calc(100vh-1.5rem)] flex-col items-center justify-center gap-10 px-4 pb-16 text-center">
@@ -30,18 +36,16 @@ export default function Home() {
         </div>
 
         {/* Title */}
-        <SplitFlapAudioProvider>
-          <div className="arcade-title-glow">
-            <SplitFlapText
-              text="UNIGUESSR"
-              speed={80}
-              fontSize="8rem"
-              transparent
-              highlightFrom={3}
-              highlightColor="#f97316"
-            />
-          </div>
-        </SplitFlapAudioProvider>
+        <div className="arcade-title-glow">
+          <SplitFlapText
+            text="UNIGUESSR"
+            speed={80}
+            fontSize="8rem"
+            transparent
+            highlightFrom={3}
+            highlightColor="#f97316"
+          />
+        </div>
 
         {/* Attract-mode line */}
         <p className="arcade-insert-coin font-mono text-sm uppercase">
@@ -50,13 +54,20 @@ export default function Home() {
 
         {/* Game Mode Selection — 1P / 2P start */}
         <div className="flex flex-wrap items-stretch justify-center gap-8">
-          <Link href="/single-player" className="arcade-btn font-mono">
+          <Link
+            href="/single-player"
+            className="arcade-btn font-mono"
+            onClick={() => audio?.playStart()}
+            onMouseEnter={() => audio?.playSelect()}
+          >
             <span className="tag">1P</span>
             <span className="label">Single Player</span>
           </Link>
           <Link
             href="/multiplayer"
             className="arcade-btn arcade-btn--p2 font-mono"
+            onClick={() => audio?.playStart()}
+            onMouseEnter={() => audio?.playSelect()}
           >
             <span className="tag">2P</span>
             <span className="label">Multiplayer</span>
@@ -70,6 +81,8 @@ export default function Home() {
             aria-label="High Scores"
             title="High Scores"
             className="arcade-menu-item"
+            onClick={() => audio?.playSelect()}
+            onMouseEnter={() => audio?.playSelect()}
           >
             <TrophyIcon className="h-4 w-4" />
             <span>High Scores</span>
@@ -79,6 +92,8 @@ export default function Home() {
             aria-label="Add a Stage"
             title="Add a Stage"
             className="arcade-menu-item"
+            onClick={() => audio?.playSelect()}
+            onMouseEnter={() => audio?.playSelect()}
           >
             <MapPinPlusIcon className="h-4 w-4" />
             <span>Add a Stage</span>

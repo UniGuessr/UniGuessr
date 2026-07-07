@@ -8,6 +8,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import GuessMap from "@/components/guess-map";
 import { PixelButton } from "@/components/Button/pixel-button";
 import FloorSelector from "@/components/Floor Selection/floor-selector";
+import { useArcadeAudio, ArcadeSoundToggle } from "@/components/audio/arcade-audio";
 import { findNearbyBuilding, type Building } from "@/config/buildings";
 import {
   getGame,
@@ -29,6 +30,7 @@ const RESULTS_DISPLAY_SECONDS = 4;
 
 export default function MultiplayerGamePage({ params }: { params: Promise<{ id: string }> }) {
   const router = useRouter();
+  const audio = useArcadeAudio();
   const searchParams = useSearchParams();
   const resolvedParams = use(params);
   const gameId = resolvedParams.id;
@@ -249,9 +251,10 @@ export default function MultiplayerGamePage({ params }: { params: Promise<{ id: 
   }, [gameId, gameState]);
 
   const startTimer = () => {
+    audio?.playConfirm(); // "Go!" cue as the round begins
     setTimeRemaining(ROUND_TIMEOUT_SECONDS);
     clearTimer();
-    
+
     timerRef.current = setInterval(() => {
       setTimeRemaining((prev) => {
         if (prev <= 1) {
@@ -305,6 +308,7 @@ export default function MultiplayerGamePage({ params }: { params: Promise<{ id: 
 
   const submitCurrentGuess = async () => {
     if (!selectedGuess || timeRemaining <= 0) return;
+    audio?.playConfirm();
     await finalizeGuessSubmission(selectedFloor);
   };
 
@@ -440,6 +444,30 @@ export default function MultiplayerGamePage({ params }: { params: Promise<{ id: 
 
   // Cancel any pending auto-advance timer on unmount.
   useEffect(() => clearAutoAdvance, []);
+
+  // Tense tick during the final 5 seconds of the round.
+  useEffect(() => {
+    if (gameState === "playing" && timeRemaining > 0 && timeRemaining <= 5) {
+      audio?.playTick();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [timeRemaining, gameState]);
+
+  // Tick down the "next round in N…" results countdown.
+  useEffect(() => {
+    if (gameState === "results" && resultsCountdown > 0) {
+      audio?.playTick();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [resultsCountdown, gameState]);
+
+  // Counter tally when this round's score is revealed.
+  useEffect(() => {
+    if (guessResult) {
+      audio?.playScore();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [guessResult]);
 
   const getCurrentPlayerState = () => {
     if (!game || !playerId) return null;
@@ -688,6 +716,7 @@ export default function MultiplayerGamePage({ params }: { params: Promise<{ id: 
                 </span>
               </div>
               <div className="flex items-center gap-3">
+                <ArcadeSoundToggle />
                 <div className="px-3 py-1 bg-white/10 rounded-full border border-white/10">
                   <span className={`font-bold font-mono ${timeRemaining <= 5 ? "text-red-500" : "text-orange-500"}`}>
                     {timeRemaining}s
@@ -856,9 +885,12 @@ export default function MultiplayerGamePage({ params }: { params: Promise<{ id: 
               <span className="px-3 py-1 bg-indigo-100 text-indigo-700 rounded-full font-semibold text-xs font-mono uppercase tracking-wider">
                 Round {currentLocation.round} / {currentLocation.total_rounds}
               </span>
-              <span className="text-orange-500 font-medium font-mono uppercase tracking-wider">
-                Total Score: {(currentPlayer?.total_score || 0).toLocaleString()}
-              </span>
+              <div className="flex items-center gap-3">
+                <ArcadeSoundToggle />
+                <span className="text-orange-500 font-medium font-mono uppercase tracking-wider">
+                  Total Score: {(currentPlayer?.total_score || 0).toLocaleString()}
+                </span>
+              </div>
             </div>
 
             {/* Result content */}

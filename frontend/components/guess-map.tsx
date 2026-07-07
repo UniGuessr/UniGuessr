@@ -9,6 +9,7 @@ import {
   type CampusId,
   type University,
 } from "@/config/buildings";
+import { useArcadeAudio } from "@/components/audio/arcade-audio";
 
 type GuessMapProps = {
   onGuess: (lat: number, lng: number) => void;
@@ -166,6 +167,7 @@ export default function GuessMap({
   opponentCursors,
   university = null,
 }: GuessMapProps) {
+  const audio = useArcadeAudio();
   const containerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<maplibregl.Map | null>(null);
 
@@ -224,6 +226,7 @@ export default function GuessMap({
       if (disabled || showResult) return;
 
       const { lat, lng } = e.lngLat;
+      audio?.playPin();
       setSelectedPosition({ lat, lng });
 
       // Remove old marker and create new one
@@ -242,7 +245,7 @@ export default function GuessMap({
 
       onGuess(lat, lng);
     },
-    [disabled, showResult, onGuess]
+    [disabled, showResult, onGuess, audio]
   );
 
   // Init map once
