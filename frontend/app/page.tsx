@@ -1,5 +1,6 @@
 "use client";
 
+import { Fragment, useEffect, useState } from "react";
 import Link from "next/link";
 import { TrophyIcon, MapPinPlusIcon } from "@/components/Icons/icons";
 import { SplitFlapText } from "@/components/Title/split-text";
@@ -7,6 +8,69 @@ import {
   useArcadeAudio,
   ArcadeSoundToggle,
 } from "@/components/audio/arcade-audio";
+import { getLeaderboardHighlights, type LeaderboardEntry } from "@/lib/api";
+
+function ScoreTicker() {
+  const [top, setTop] = useState<LeaderboardEntry[]>([]);
+  const [recent, setRecent] = useState<LeaderboardEntry[]>([]);
+
+  useEffect(() => {
+    let active = true;
+    getLeaderboardHighlights(5, 3)
+      .then((data) => {
+        if (!active) return;
+        setTop(data.top);
+        setRecent(data.recent);
+      })
+      .catch(() => {
+        /* keep the fallback attract-mode copy on error */
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  const hasData = top.length > 0 || recent.length > 0;
+
+  return (
+    <div className="arcade-ticker font-mono text-[0.68rem]" aria-hidden="true">
+      {hasData ? (
+        <span>
+          {top.length > 0 && (
+            <>
+              High Scores &#8226;{" "}
+              {top.map((entry, i) => (
+                <Fragment key={entry.id}>
+                  {i + 1}. {entry.username} &#8212;{" "}
+                  <b>{entry.score.toLocaleString()}</b> &#8226;{" "}
+                </Fragment>
+              ))}
+            </>
+          )}
+          {recent.length > 0 && (
+            <>
+              Latest &#8226;{" "}
+              {recent.map((entry) => (
+                <Fragment key={entry.id}>
+                  {entry.username} &#8212;{" "}
+                  <b>{entry.score.toLocaleString()}</b> &#8226;{" "}
+                </Fragment>
+              ))}
+            </>
+          )}
+          Press 1P or 2P to start &#8226;
+        </span>
+      ) : (
+        <span>
+          Now playing &#8226; Hall Building lobby &#8212; <b>4,820 pts</b>{" "}
+          &#8226; McGill Arts quad &#8212; <b>5,000 pts</b> &#8226; Webster
+          Library &#8212; <b>3,975 pts</b> &#8226; Press 1P or 2P to start
+          &#8226;
+        </span>
+      )}
+    </div>
+  );
+}
 
 export default function Home() {
   const audio = useArcadeAudio();
@@ -22,16 +86,17 @@ export default function Home() {
       <main className="relative z-[2] flex min-h-[calc(100vh-1.5rem)] flex-col items-center justify-center gap-10 px-4 pb-16 text-center">
         {/* Stats (eyebrow) */}
         <div className="flex items-center justify-center gap-4 font-mono text-xs uppercase tracking-[0.28em] text-white/40">
-          <span>
-            Credits <span className="text-[#4ade80]">&#8734;</span>
-          </span>
-          <span className="h-1 w-1 rounded-full bg-orange-500 shadow-[0_0_8px_#f97316]" />
+          
           <span>
             <span className="text-[#4ade80]">100+</span> stages
           </span>
           <span className="h-1 w-1 rounded-full bg-orange-500 shadow-[0_0_8px_#f97316]" />
           <span>
             <span className="text-[#4ade80]">2</span> campuses
+          </span>
+          <span className="h-1 w-1 rounded-full bg-orange-500 shadow-[0_0_8px_#f97316]" />
+                    <span>
+            <span className="text-[#4ade80]">LIVE</span> multiplayer
           </span>
         </div>
 
@@ -49,7 +114,7 @@ export default function Home() {
 
         {/* Attract-mode line */}
         <p className="arcade-insert-coin font-mono text-sm uppercase">
-          &#9668; Insert coin to play &#9658;
+          &#9668; SELECT GAMEMODE &#9658;
         </p>
 
         {/* Game Mode Selection — 1P / 2P start */}
@@ -101,15 +166,8 @@ export default function Home() {
         </div>
       </main>
 
-      {/* Attract-mode ticker */}
-      <div className="arcade-ticker font-mono text-[0.68rem]" aria-hidden="true">
-        <span>
-          Now playing &#8226; Hall Building lobby &#8212; <b>4,820 pts</b>{" "}
-          &#8226; McGill Arts quad &#8212; <b>5,000 pts</b> &#8226; Webster
-          Library &#8212; <b>3,975 pts</b> &#8226; High score today:{" "}
-          <b>af-yshen &#8212; 24,600</b> &#8226; Press 1P or 2P to start &#8226;
-        </span>
-      </div>
+      {/* Attract-mode ticker — real top scores + latest plays */}
+      <ScoreTicker />
     </>
   );
 }

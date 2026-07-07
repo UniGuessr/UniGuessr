@@ -180,14 +180,14 @@
     background: rgba(5, 5, 10, 0.6);
     backdrop-filter: blur(2px);
     color: #8a88a8;
-    letter-spacing: 0.24em;
+    letter-spacing: 0.08em;
     text-transform: uppercase;
 }
-.arcade-ticker span {
+.arcade-ticker > span {
     display: inline-block;
     white-space: nowrap;
     padding-left: 100%;
-    animation: arcade-scroll 22s linear infinite;
+    animation: arcade-scroll 55s linear infinite;
 }
 .arcade-ticker b {
     color: var(--arcade-score);
@@ -210,9 +210,9 @@
 @media (prefers-reduced-motion: reduce) {
     .crt-scanlines::after,
     .arcade-insert-coin,
-    .arcade-ticker span {
+    .arcade-ticker > span {
         animation: none;
     }
     .arcade-insert-coin { opacity: 1; }
-    .arcade-ticker span { padding-left: 0; }
+    .arcade-ticker > span { padding-left: 0; }
 }

@@ -49,6 +49,26 @@ async def get_leaderboard(
     ]
 
 
+@router.get("/highlights", response_model=dict)
+async def get_leaderboard_highlights(
+    top: int = Query(default=5, ge=1, le=20),
+    recent: int = Query(default=3, ge=1, le=20),
+    db: AsyncSession = Depends(get_db),
+):
+    """Top scores and most recent scores for the home-page ticker."""
+    top_entries = await leaderboard_service.get_top_scores_overall(db, limit=top)
+    recent_entries = await leaderboard_service.get_recent_scores(db, limit=recent)
+    return {
+        "top": [
+            LeaderboardEntryResponse.model_validate({**e.__dict__, "rank": rank})
+            for rank, e in enumerate(top_entries, start=1)
+        ],
+        "recent": [
+            LeaderboardEntryResponse.model_validate(e.__dict__) for e in recent_entries
+        ],
+    }
+
+
 @router.get("/user/{username}/rank", response_model=dict)
 async def get_user_rank(
     username: str,

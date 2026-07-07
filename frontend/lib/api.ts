@@ -197,6 +197,28 @@ export async function saveScoreToLeaderboard(data: {
   return response.json();
 }
 
+export interface LeaderboardHighlights {
+  top: LeaderboardEntry[];
+  recent: LeaderboardEntry[];
+}
+
+export async function getLeaderboardHighlights(
+  top = 5,
+  recent = 3
+): Promise<LeaderboardHighlights> {
+  const params = new URLSearchParams();
+  params.set("top", String(top));
+  params.set("recent", String(recent));
+  const response = await fetch(
+    `${API_BASE_URL}/api/leaderboard/highlights?${params}`
+  );
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.detail || "Failed to fetch leaderboard highlights");
+  }
+  return response.json();
+}
+
 export async function getLeaderboard(
   limit = 100,
   rounds?: number,

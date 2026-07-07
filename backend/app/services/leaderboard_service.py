@@ -38,6 +38,28 @@ async def get_top_scores(
     return list(result.scalars().all())
 
 
+async def get_top_scores_overall(
+    db: AsyncSession, limit: int = 5
+) -> list[LeaderboardEntry]:
+    """Highest scores across all universities/difficulties (for the home ticker)."""
+    query = select(LeaderboardEntry).order_by(LeaderboardEntry.score.desc()).limit(limit)
+    result = await db.execute(query)
+    return list(result.scalars().all())
+
+
+async def get_recent_scores(
+    db: AsyncSession, limit: int = 3
+) -> list[LeaderboardEntry]:
+    """Most recently submitted scores across all universities/difficulties."""
+    query = (
+        select(LeaderboardEntry)
+        .order_by(LeaderboardEntry.created_at.desc())
+        .limit(limit)
+    )
+    result = await db.execute(query)
+    return list(result.scalars().all())
+
+
 async def get_user_rank(
     username: str,
     db: AsyncSession,
